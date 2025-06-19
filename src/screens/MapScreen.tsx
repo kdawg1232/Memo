@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import {
   View,
   StyleSheet,
@@ -13,7 +13,15 @@ import { useLocation } from '../hooks/useLocation'
 import { MapRegion, DEFAULT_LATITUDE_DELTA, DEFAULT_LONGITUDE_DELTA } from '../types/location'
 import { AudioIcon } from '../components/Icons'
 
-const MapScreen: React.FC = () => {
+interface MapScreenProps {
+  shouldCenterOnUser?: boolean
+  onCenterCompleted?: () => void
+}
+
+const MapScreen: React.FC<MapScreenProps> = ({ 
+  shouldCenterOnUser = false, 
+  onCenterCompleted 
+}) => {
   const {
     location,
     loading,
@@ -27,6 +35,7 @@ const MapScreen: React.FC = () => {
 
   const [mapRegion, setMapRegion] = useState<MapRegion | null>(null)
   const [followUserLocation, setFollowUserLocation] = useState<boolean>(true)
+  const mapViewRef = useRef<MapView>(null)
 
 
 
@@ -43,6 +52,17 @@ const MapScreen: React.FC = () => {
     }
   }, [location, followUserLocation])
 
+  // Handle centering on user when requested from navigation
+  useEffect(() => {
+    if (shouldCenterOnUser && location) {
+      console.log('🗺️ Navigation map button pressed - centering on user location')
+      // Center map on user location when map button is pressed
+      handleGoToUserLocation()
+      // Notify parent that centering is complete
+      onCenterCompleted?.()
+    }
+  }, [shouldCenterOnUser, location, onCenterCompleted])
+
   // Handle permission request
   const handleRequestPermission = async () => {
     await requestPermission()
@@ -56,15 +76,26 @@ const MapScreen: React.FC = () => {
   // Handle user location button press
   const handleGoToUserLocation = async () => {
     if (location) {
+      console.log('📍 Centering map on user location:', location.latitude, location.longitude)
       const region: MapRegion = {
         latitude: location.latitude,
         longitude: location.longitude,
         latitudeDelta: DEFAULT_LATITUDE_DELTA,
         longitudeDelta: DEFAULT_LONGITUDE_DELTA,
       }
+      
+      // Use animateToRegion for smooth animation to user location
+      if (mapViewRef.current) {
+        console.log('🎯 Animating to region:', region)
+        mapViewRef.current.animateToRegion(region, 1000) // 1 second animation
+      } else {
+        console.log('❌ MapView ref is null')
+      }
+      
       setMapRegion(region)
       setFollowUserLocation(true)
     } else {
+      console.log('❌ No location available, getting current location...')
       await getCurrentLocation()
     }
   }
@@ -124,6 +155,7 @@ const MapScreen: React.FC = () => {
       {/* Map */}
       <View style={styles.mapContainer}>
         <MapView
+          ref={mapViewRef}
           provider={PROVIDER_DEFAULT} // Use Apple Maps - FREE forever!
           style={styles.map}
           region={mapRegion || {

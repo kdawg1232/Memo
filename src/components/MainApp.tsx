@@ -9,9 +9,21 @@ type ScreenType = 'map' | 'friends' | 'profile'
 
 const MainApp: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('map')
+  const [shouldCenterOnUser, setShouldCenterOnUser] = useState<boolean>(false)
 
   // Navigation handlers
-  const handleNavigateToMap = () => setCurrentScreen('map')
+  const handleNavigateToMap = () => {
+    console.log('🗺️ Map button pressed, current screen:', currentScreen)
+    if (currentScreen === 'map') {
+      // If already on map screen, center on user location
+      console.log('🎯 Already on map, triggering center on user location')
+      setShouldCenterOnUser(true)
+    } else {
+      // Otherwise just navigate to map
+      console.log('📱 Navigating to map screen')
+      setCurrentScreen('map')
+    }
+  }
   const handleNavigateToFriends = () => setCurrentScreen('friends')
   const handleNavigateToProfile = () => setCurrentScreen('profile')
 
@@ -19,13 +31,23 @@ const MainApp: React.FC = () => {
   const renderCurrentScreen = () => {
     switch (currentScreen) {
       case 'map':
-        return <MapScreen />
+        return (
+          <MapScreen 
+            shouldCenterOnUser={shouldCenterOnUser}
+            onCenterCompleted={() => setShouldCenterOnUser(false)}
+          />
+        )
       case 'friends':
         return <FriendsScreen onNavigateBack={handleNavigateToMap} />
       case 'profile':
         return <ProfileScreen onNavigateBack={handleNavigateToMap} />
       default:
-        return <MapScreen />
+        return (
+          <MapScreen 
+            shouldCenterOnUser={shouldCenterOnUser}
+            onCenterCompleted={() => setShouldCenterOnUser(false)}
+          />
+        )
     }
   }
 
