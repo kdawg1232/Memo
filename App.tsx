@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useAuth } from './src/hooks/useAuth';
 import AuthForm from './src/components/AuthForm';
-import HomeScreen from './src/screens/HomeScreen';
+import MapScreen from './src/screens/MapScreen';
 
 const App: React.FC = () => {
   const { user, loading } = useAuth();
@@ -18,7 +18,7 @@ const App: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {user ? <HomeScreen /> : <AuthForm />}
+      {user ? <MapScreen /> : <AuthForm />}
       <StatusBar style="auto" />
     </View>
   );

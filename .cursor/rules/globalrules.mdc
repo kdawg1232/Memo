@@ -32,7 +32,7 @@ alwaysApply: false
 - **Update `README.md`** when new features are added, dependencies change, or setup steps are modified.
 - **Comment non-obvious code** and ensure everything is understandable to a mid-level developer.
 - When writing complex logic, **add an inline `# Reason:` comment** explaining the why, not just the what.
-- Change the database files whenever we need to alter the sql for the databases. Have sql for one table for each file. 
+- In the database folder, change the database files whenever we need to alter the sql for the databases. Have sql for one table for each file. 
 
 ### Comments
 - ALWAYS try to add more helpful and explanatory comments into our code

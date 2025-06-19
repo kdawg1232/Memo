@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "memo-temp",
-    "slug": "memo-temp",
+    "name": "Audio Geo-Pinning",
+    "slug": "audio-geo-pinning",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,18 +12,53 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "This app needs access to location to pin audio recordings to specific places.",
+          "locationAlwaysPermission": "This app needs access to location to pin audio recordings to specific places.",
+          "locationWhenInUsePermission": "This app needs access to location to pin audio recordings to specific places."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "This app needs access to microphone to record audio memos."
+        }
+      ]
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to location to pin audio recordings to specific places.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to location to pin audio recordings to specific places.",
+        "NSMicrophoneUsageDescription": "This app needs access to microphone to record audio memos.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.karsai1232.audiogeopinning"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5f4f790f-bce7-4e70-976c-97ce250b2d05"
+      }
+    },
+    "owner": "karsai1232"
   }
 }
