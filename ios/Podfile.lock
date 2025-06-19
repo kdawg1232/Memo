@@ -1963,30 +1963,8 @@ PODS:
     - React-logger (= 0.79.4)
     - React-perflogger (= 0.79.4)
     - React-utils (= 0.79.4)
-  - RNCAsyncStorage (2.2.0):
-    - DoubleConversion
-    - glog
-    - hermes-engine
-    - RCT-Folly (= 2024.11.18.00)
-    - RCTRequired
-    - RCTTypeSafety
+  - RNCAsyncStorage (2.1.2):
     - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-hermes
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - Yoga
   - SocketRocket (0.7.1)
   - Yoga (0.0.0)
 
@@ -2272,17 +2250,17 @@ SPEC CHECKSUMS:
   EXConstants: 9f310f44bfedba09087042756802040e464323c0
   EXJSONUtils: 1d3e4590438c3ee593684186007028a14b3686cd
   EXManifests: 951161dd9a63523c4eef0fa2a7476639a7ba230d
-  Expo: 96f7935e5af791080d758fbfda1f7c10e827e588
+  Expo: 7ef9ca441f60ca7e7dbafb2236d9e8f70916fbdd
   expo-dev-client: bf14fdb681b2dc761f5df9ad4edca8bb55d640f4
-  expo-dev-launcher: 6ebab8448f23b80545c8b21eb026b6bfefad1f98
-  expo-dev-menu: c8b438f2db8e6a6ca6714a01d9425b8a9690fa06
+  expo-dev-launcher: 3c8f032e14affd6ac805416eed46f5daad0c997e
+  expo-dev-menu: 3b3ef144446cbe8921fcf7b1760085f4d16cf068
   expo-dev-menu-interface: 609c35ae8b97479cdd4c9e23c8cf6adc44beea0e
   ExpoAsset: 3bc9adb7dbbf27ae82c18ca97eb988a3ae7e73b1
   ExpoFileSystem: c36eb8155eb2381c83dda7dc210e3eec332368b6
   ExpoFont: abbb91a911eb961652c2b0a22eef801860425ed6
   ExpoKeepAwake: bf0811570c8da182bfb879169437d4de298376e7
   ExpoLocation: a319a1b2c00b82c29e8a24227e0f00d1e19662c5
-  ExpoModulesCore: d431ffe83c8673d02cb38425594a5f5480fd3061
+  ExpoModulesCore: 6fa64c1ff6d5e0d977c282cee9205cef98f23f9f
   EXUpdatesInterface: 7ff005b7af94ee63fa452ea7bb95d7a8ff40277a
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6
   FBLazyVector: 15c28682af535aa55b9b31e64deff54b7ed7d453
@@ -2327,14 +2305,14 @@ SPEC CHECKSUMS:
   React-performancetimeline: b88fe1a66eb86cfda608dc1de6443399e114bdec
   React-RCTActionSheet: b70e1e649fb0bce5a3bda6d014f08e66ed4f0182
   React-RCTAnimation: ffa3b39acae2c675437ccf19e868c55570b2b627
-  React-RCTAppDelegate: 58ae7b688f2fa079e7ebf6738acce913d0b74444
+  React-RCTAppDelegate: 871408153cc858af0621025dc70fb7e01716bbac
   React-RCTBlob: 6f3b35f78188d11a84fa76770d36471e3d93c588
-  React-RCTFabric: d093f6e0a5462ba2ed75aa0bc923d30f05f34569
-  React-RCTFBReactNativeSpec: faf95122eed239f0713afc91a93d1d886b85cc0e
+  React-RCTFabric: f273245201734c485c2d10db9100eb47569e1f37
+  React-RCTFBReactNativeSpec: b95954a38ae0ae0b66b60849245414e03624e208
   React-RCTImage: 017bac77e99afbc52a129b98eee6480d7586fc07
   React-RCTLinking: 998af20d4545589dd36c7281a7c6989bc4035b1e
   React-RCTNetwork: ded3e4d0368cf149677f9524605dc279d7e262a4
-  React-RCTRuntime: e2bd66c3314906dbb6b17a5405b03723b5542302
+  React-RCTRuntime: 7c3c2f2b152ef11673b39e3270167650719f6d41
   React-RCTSettings: 75f8539891bcb13764c28cc667cf6bc73d2b441b
   React-RCTText: 7c5bcaea63c64dc08f3a83144722d2448d6b3a34
   React-RCTVibration: 31ca4ab26d1316545561bf79d8832902c67cc63b
@@ -2352,7 +2330,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: bf62814e0fde923f73fc64b7e82d76c63c284da9
   ReactCodegen: f891084749d03b8af8a244cefaa492e491b763fd
   ReactCommon: c7d636ec1b9801ff4ee83cce8e0bf74a1610fc3f
-  RNCAsyncStorage: a1c8cc8a99c32de1244a9cf707bf9d83d0de0f71
+  RNCAsyncStorage: b9f5f78da5d16a853fe3dc22e8268d932fc45a83
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: a6cb833e04fb8c59a012b49fb1d040fcb0cbb633
 

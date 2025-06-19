@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		121E82A6C159283028706534 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AB45283FED9B335FB577445F /* PrivacyInfo.xcprivacy */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		61C4C2DEFF4D2DFC7DCC802F /* libPods-AudioGeoPinning.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C5D5E568E388C3ABB74F7F55 /* libPods-AudioGeoPinning.a */; };
-		948A01C7F1CB0183E20559F1 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701B96EE2F42B704FA981A4B /* ExpoModulesProvider.swift */; };
+		3F7CF8FEB3AEE49D7795E955 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 368402FB6115650EB39C6EE7 /* PrivacyInfo.xcprivacy */; };
+		796C92E2131ACEDFC1A9BE2F /* libPods-AudioGeoPinning.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AE91ACFCA0111D17CCF5BFA0 /* libPods-AudioGeoPinning.a */; };
+		8582CBA2AF7E3A98295FA8FF /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46E759FC7582AAECB476D257 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -20,13 +20,13 @@
 		13B07F961A680F5B00A75B9A /* AudioGeoPinning.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AudioGeoPinning.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = AudioGeoPinning/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = AudioGeoPinning/Info.plist; sourceTree = "<group>"; };
-		2E07F799BD757229986F9002 /* Pods-AudioGeoPinning.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AudioGeoPinning.release.xcconfig"; path = "Target Support Files/Pods-AudioGeoPinning/Pods-AudioGeoPinning.release.xcconfig"; sourceTree = "<group>"; };
-		701B96EE2F42B704FA981A4B /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-AudioGeoPinning/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		368402FB6115650EB39C6EE7 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = AudioGeoPinning/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		46E759FC7582AAECB476D257 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-AudioGeoPinning/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		5CFE7B19F07D1DD85415DB11 /* Pods-AudioGeoPinning.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AudioGeoPinning.debug.xcconfig"; path = "Target Support Files/Pods-AudioGeoPinning/Pods-AudioGeoPinning.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = AudioGeoPinning/SplashScreen.storyboard; sourceTree = "<group>"; };
-		AB45283FED9B335FB577445F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = AudioGeoPinning/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		ACAF5C29C4BC4D3E598359A8 /* Pods-AudioGeoPinning.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AudioGeoPinning.debug.xcconfig"; path = "Target Support Files/Pods-AudioGeoPinning/Pods-AudioGeoPinning.debug.xcconfig"; sourceTree = "<group>"; };
+		AE91ACFCA0111D17CCF5BFA0 /* libPods-AudioGeoPinning.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-AudioGeoPinning.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C5D5E568E388C3ABB74F7F55 /* libPods-AudioGeoPinning.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-AudioGeoPinning.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C83E69E4124011BB2595D280 /* Pods-AudioGeoPinning.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AudioGeoPinning.release.xcconfig"; path = "Target Support Files/Pods-AudioGeoPinning/Pods-AudioGeoPinning.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = AudioGeoPinning/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* AudioGeoPinning-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "AudioGeoPinning-Bridging-Header.h"; path = "AudioGeoPinning/AudioGeoPinning-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				61C4C2DEFF4D2DFC7DCC802F /* libPods-AudioGeoPinning.a in Frameworks */,
+				796C92E2131ACEDFC1A9BE2F /* libPods-AudioGeoPinning.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,15 +53,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				AB45283FED9B335FB577445F /* PrivacyInfo.xcprivacy */,
-			);
-			name = AudioGeoPinning;
-			sourceTree = "<group>";
-		};
-		19F8211EB67F2AA25B209D90 /* AudioGeoPinning */ = {
-			isa = PBXGroup;
-			children = (
-				701B96EE2F42B704FA981A4B /* ExpoModulesProvider.swift */,
+				368402FB6115650EB39C6EE7 /* PrivacyInfo.xcprivacy */,
 			);
 			name = AudioGeoPinning;
 			sourceTree = "<group>";
@@ -70,25 +62,15 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				C5D5E568E388C3ABB74F7F55 /* libPods-AudioGeoPinning.a */,
+				AE91ACFCA0111D17CCF5BFA0 /* libPods-AudioGeoPinning.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		42A6E2FDE1FD71DA65303253 /* Pods */ = {
+		6048771B0D2F97575E8817A2 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				ACAF5C29C4BC4D3E598359A8 /* Pods-AudioGeoPinning.debug.xcconfig */,
-				2E07F799BD757229986F9002 /* Pods-AudioGeoPinning.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
-			sourceTree = "<group>";
-		};
-		821C6471FB644082322C665B /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				19F8211EB67F2AA25B209D90 /* AudioGeoPinning */,
+				FC53360C281F3A8A8CD7C04B /* AudioGeoPinning */,
 			);
 			name = ExpoModulesProviders;
 			sourceTree = "<group>";
@@ -107,8 +89,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				42A6E2FDE1FD71DA65303253 /* Pods */,
-				821C6471FB644082322C665B /* ExpoModulesProviders */,
+				D3A6095E0EAE22CA4FAB2271 /* Pods */,
+				6048771B0D2F97575E8817A2 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -132,6 +114,24 @@
 			path = AudioGeoPinning/Supporting;
 			sourceTree = "<group>";
 		};
+		D3A6095E0EAE22CA4FAB2271 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				5CFE7B19F07D1DD85415DB11 /* Pods-AudioGeoPinning.debug.xcconfig */,
+				C83E69E4124011BB2595D280 /* Pods-AudioGeoPinning.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		FC53360C281F3A8A8CD7C04B /* AudioGeoPinning */ = {
+			isa = PBXGroup;
+			children = (
+				46E759FC7582AAECB476D257 /* ExpoModulesProvider.swift */,
+			);
+			name = AudioGeoPinning;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "AudioGeoPinning" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				DBEA07B1C3925AB84632DECF /* [Expo] Configure project */,
+				5255AC6137EB9383978101A0 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				704CAC0EDEE6E8EEE0B893F6 /* [CP] Embed Pods Frameworks */,
+				4B51ADFA9056C21E3D6E75BE /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				121E82A6C159283028706534 /* PrivacyInfo.xcprivacy in Resources */,
+				3F7CF8FEB3AEE49D7795E955 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,7 +240,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		704CAC0EDEE6E8EEE0B893F6 /* [CP] Embed Pods Frameworks */ = {
+		4B51ADFA9056C21E3D6E75BE /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -257,6 +257,25 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-AudioGeoPinning/Pods-AudioGeoPinning-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		5255AC6137EB9383978101A0 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-AudioGeoPinning/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -298,25 +317,6 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-AudioGeoPinning/Pods-AudioGeoPinning-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		DBEA07B1C3925AB84632DECF /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-AudioGeoPinning/expo-configure-project.sh\"\n";
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -325,7 +325,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				948A01C7F1CB0183E20559F1 /* ExpoModulesProvider.swift in Sources */,
+				8582CBA2AF7E3A98295FA8FF /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -334,7 +334,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = ACAF5C29C4BC4D3E598359A8 /* Pods-AudioGeoPinning.debug.xcconfig */;
+			baseConfigurationReference = 5CFE7B19F07D1DD85415DB11 /* Pods-AudioGeoPinning.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -370,7 +370,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2E07F799BD757229986F9002 /* Pods-AudioGeoPinning.release.xcconfig */;
+			baseConfigurationReference = C83E69E4124011BB2595D280 /* Pods-AudioGeoPinning.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

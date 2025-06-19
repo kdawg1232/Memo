@@ -56,6 +56,17 @@ Build a minimum viable version that supports:
 | 16–22 hrs    | Polish + bug handling        |
 | 22–24 hrs    | Test + record demo + README  |
 
+Colors Scheme: 
+
+## Color Palette
+Use the following brand colors consistently across buttons, headers, and accents:
+
+- `#264653` – Dark Teal (primary background or nav bar)
+- `#2A9D8F` – Teal (buttons and action highlights)
+- `#E9C46A` – Soft Yellow (secondary accent)
+- `#F4A261` – Sandy Orange (warnings or secondary buttons)
+- `#E76F51` – Coral/Red-Orange (delete or danger buttons)
+
 ## 🔚 Success Criteria
 By the end of 24 hours, the user should be able to:
 - Open the app, see their location on a map

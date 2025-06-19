@@ -10,11 +10,10 @@ import {
 } from 'react-native'
 import MapView, { Marker, Region, PROVIDER_DEFAULT } from 'react-native-maps'
 import { useLocation } from '../hooks/useLocation'
-import { useAuth } from '../hooks/useAuth'
 import { MapRegion, DEFAULT_LATITUDE_DELTA, DEFAULT_LONGITUDE_DELTA } from '../types/location'
+import { AudioIcon } from '../components/Icons'
 
 const MapScreen: React.FC = () => {
-  const { user, signOut } = useAuth()
   const {
     location,
     loading,
@@ -28,6 +27,8 @@ const MapScreen: React.FC = () => {
 
   const [mapRegion, setMapRegion] = useState<MapRegion | null>(null)
   const [followUserLocation, setFollowUserLocation] = useState<boolean>(true)
+
+
 
   // Update map region when location changes
   useEffect(() => {
@@ -73,13 +74,7 @@ const MapScreen: React.FC = () => {
     setFollowUserLocation(false)
   }
 
-  // Handle sign out
-  const handleSignOut = async () => {
-    const { error } = await signOut()
-    if (error) {
-      Alert.alert('Error', error.message)
-    }
-  }
+
 
   // Show permission request if needed
   if (permissionStatus === 'denied') {
@@ -126,16 +121,6 @@ const MapScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Audio Geo-Pinning</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.headerButton} onPress={handleSignOut}>
-            <Text style={styles.headerButtonText}>Sign Out</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       {/* Map */}
       <View style={styles.mapContainer}>
         <MapView
@@ -202,7 +187,7 @@ const MapScreen: React.FC = () => {
         
         {/* Record button placeholder */}
         <TouchableOpacity style={styles.recordButton}>
-          <Text style={styles.recordButtonText}>🎤</Text>
+          <AudioIcon size={24} />
         </TouchableOpacity>
       </View>
 
@@ -369,7 +354,7 @@ const styles = StyleSheet.create({
   },
   bottomControls: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 120, // Closer to navigation bar (was 100, now 120 to account for nav bar height)
     right: 20,
     alignItems: 'center',
   },
@@ -405,9 +390,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-  },
-  recordButtonText: {
-    fontSize: 30,
   },
   locationInfo: {
     position: 'absolute',
