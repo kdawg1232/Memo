@@ -23,7 +23,7 @@
         }
       ],
       [
-        "expo-av",
+        "expo-audio",
         {
           "microphonePermission": "This app needs access to microphone to record audio memos."
         }

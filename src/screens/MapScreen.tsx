@@ -12,6 +12,15 @@ import MapView, { Marker, Region, PROVIDER_DEFAULT } from 'react-native-maps'
 import { useLocation } from '../hooks/useLocation'
 import { MapRegion, DEFAULT_LATITUDE_DELTA, DEFAULT_LONGITUDE_DELTA } from '../types/location'
 import { AudioIcon } from '../components/Icons'
+import VoiceRecordingModal from '../components/VoiceRecordingModal'
+import AudioPlaybackModal from '../components/AudioPlaybackModal'
+import { 
+  createAudioPin, 
+  fetchAudioPins, 
+  deleteAudioPin,
+  AudioPin, 
+  CreateAudioPinData 
+} from '../services/database'
 
 interface MapScreenProps {
   shouldCenterOnUser?: boolean
@@ -35,6 +44,12 @@ const MapScreen: React.FC<MapScreenProps> = ({
 
   const [mapRegion, setMapRegion] = useState<MapRegion | null>(null)
   const [followUserLocation, setFollowUserLocation] = useState<boolean>(true)
+  const [isRecordingModalVisible, setIsRecordingModalVisible] = useState<boolean>(false)
+  const [isPlaybackModalVisible, setIsPlaybackModalVisible] = useState<boolean>(false)
+  const [selectedPin, setSelectedPin] = useState<AudioPin | null>(null)
+  const [audioPins, setAudioPins] = useState<AudioPin[]>([])
+  const [isLoadingPins, setIsLoadingPins] = useState<boolean>(false)
+  const [isCreatingPin, setIsCreatingPin] = useState<boolean>(false)
   const mapViewRef = useRef<MapView>(null)
 
 
@@ -51,6 +66,62 @@ const MapScreen: React.FC<MapScreenProps> = ({
       setMapRegion(region)
     }
   }, [location, followUserLocation])
+
+  // Load audio pins when component mounts or location changes
+  useEffect(() => {
+    loadAudioPins()
+  }, [location])
+
+  // Reload pins when modal closes (in case new pins were added elsewhere)
+  useEffect(() => {
+    if (!isRecordingModalVisible && !isPlaybackModalVisible) {
+      loadAudioPins()
+    }
+  }, [isRecordingModalVisible, isPlaybackModalVisible])
+
+  // Debug: Log when audioPins state changes
+  useEffect(() => {
+    console.log('🔄 AudioPins state updated. Count:', audioPins.length)
+    audioPins.forEach((pin, index) => {
+      console.log(`🟠 Pin ${index}: ID=${pin.id}, lat=${pin.lat}, lng=${pin.lng}`)
+    })
+  }, [audioPins])
+
+  // Load audio pins from database
+  const loadAudioPins = async () => {
+    try {
+      setIsLoadingPins(true)
+      console.log('🔄 Loading audio pins from database...')
+      
+      // Fetch pins with optional location bounds for better performance
+      let bounds = undefined
+      if (mapRegion) {
+        bounds = {
+          northEast: {
+            lat: mapRegion.latitude + mapRegion.latitudeDelta / 2,
+            lng: mapRegion.longitude + mapRegion.longitudeDelta / 2,
+          },
+          southWest: {
+            lat: mapRegion.latitude - mapRegion.latitudeDelta / 2,
+            lng: mapRegion.longitude - mapRegion.longitudeDelta / 2,
+          },
+        }
+      }
+
+      const result = await fetchAudioPins(bounds)
+      
+      if (result.success && result.pins) {
+        console.log('✅ Loaded', result.pins.length, 'audio pins')
+        setAudioPins(result.pins)
+      } else {
+        console.error('❌ Failed to load pins:', result.error)
+      }
+    } catch (error) {
+      console.error('❌ Error loading pins:', error)
+    } finally {
+      setIsLoadingPins(false)
+    }
+  }
 
   // Handle centering on user when requested from navigation
   useEffect(() => {
@@ -103,6 +174,129 @@ const MapScreen: React.FC<MapScreenProps> = ({
   // Handle map region change (stop following user when map is moved manually)
   const handleRegionChangeComplete = (region: Region) => {
     setFollowUserLocation(false)
+  }
+
+  // Handle record button press
+  const handleRecordButtonPress = () => {
+    console.log('🎤 Record button pressed - opening recording modal')
+    setIsRecordingModalVisible(true)
+  }
+
+  // Handle recording modal close
+  const handleRecordingModalClose = () => {
+    console.log('❌ Recording modal closed')
+    setIsRecordingModalVisible(false)
+  }
+
+  // Handle recording send (create audio pin)
+  const handleRecordingSend = async (audioUri: string) => {
+    if (!location) {
+      Alert.alert('Location Error', 'Unable to get your current location. Please try again.')
+      return
+    }
+
+    try {
+      setIsCreatingPin(true)
+      console.log('📤 Recording sent - creating audio pin:', audioUri)
+      console.log('📍 Current location for pin:', location.latitude, location.longitude)
+
+      // Get file info for better pin metadata
+      const response = await fetch(audioUri)
+      const blob = await response.blob()
+      
+      console.log('📄 Pre-upload file info:')
+      console.log('  - URI:', audioUri)
+      console.log('  - Size:', blob.size, 'bytes')
+      console.log('  - Type:', blob.type)
+      
+      if (blob.size === 0) {
+        console.error('❌ Cannot upload empty audio file!')
+        Alert.alert('Recording Error', 'The audio file is empty. Please try recording again.')
+        return
+      }
+      
+      // Create pin data with current location and file info
+      const pinData: CreateAudioPinData = {
+        lat: location.latitude,
+        lng: location.longitude,
+        title: `Voice Memo`,
+        description: `Recorded at ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+        file_size: blob.size,
+        // Note: duration will be extracted during upload if possible
+      }
+
+      // Create the audio pin (uploads audio and creates database record)
+      const result = await createAudioPin(audioUri, pinData)
+
+      if (result.success && result.pin) {
+        console.log('✅ Audio pin created successfully:', result.pin.id)
+        console.log('📍 Pin coordinates:', result.pin.lat, result.pin.lng)
+        console.log('🔢 Current pins count:', audioPins.length)
+        
+        // Add the new pin to our local state
+        setAudioPins(prevPins => {
+          const newPins = [result.pin!, ...prevPins]
+          console.log('🔢 New pins count:', newPins.length)
+          console.log('📌 All pins:', newPins.map(p => ({ id: p.id, lat: p.lat, lng: p.lng })))
+          return newPins
+        })
+        
+        // Show success message
+        Alert.alert('Success', 'Your audio pin has been created!', [
+          { text: 'OK', onPress: () => console.log('Pin creation confirmed') }
+        ])
+        
+        setIsRecordingModalVisible(false)
+      } else {
+        console.error('❌ Failed to create pin:', result.error)
+        Alert.alert('Upload Failed', result.error || 'Unable to create audio pin. Please try again.')
+      }
+    } catch (error) {
+      console.error('❌ Error creating pin:', error)
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.')
+    } finally {
+      setIsCreatingPin(false)
+    }
+  }
+
+  // Handle pin marker press (open playback modal)
+  const handlePinPress = (pin: AudioPin) => {
+    console.log('🎵 Pin pressed - opening playback modal:', pin.id)
+    setSelectedPin(pin)
+    setIsPlaybackModalVisible(true)
+  }
+
+  // Handle playback modal close
+  const handlePlaybackModalClose = () => {
+    console.log('❌ Playback modal closed')
+    setSelectedPin(null)
+    setIsPlaybackModalVisible(false)
+  }
+
+  // Handle pin deletion
+  const handlePinDelete = async (pinId: string) => {
+    try {
+      console.log('🗑️ Deleting audio pin:', pinId)
+      
+      const result = await deleteAudioPin(pinId)
+      
+      if (result.success) {
+        console.log('✅ Pin deleted successfully')
+        
+        // Remove the pin from local state
+        setAudioPins(prevPins => prevPins.filter(pin => pin.id !== pinId))
+        
+        Alert.alert('Success', 'Audio pin deleted successfully!', [
+          { text: 'OK', onPress: () => console.log('Pin deletion confirmed') }
+        ])
+      } else {
+        console.error('❌ Failed to delete pin:', result.error)
+        Alert.alert('Delete Failed', result.error || 'Unable to delete audio pin. Please try again.')
+      }
+    } catch (error) {
+      console.error('❌ Error deleting pin:', error)
+      Alert.alert('Error', 'An unexpected error occurred while deleting the pin.')
+    }
   }
 
 
@@ -175,18 +369,24 @@ const MapScreen: React.FC<MapScreenProps> = ({
           zoomEnabled={true}
           pitchEnabled={true}
         >
-          {/* User location marker (custom) */}
-          {location && (
-            <Marker
-              coordinate={{
-                latitude: location.latitude,
-                longitude: location.longitude,
-              }}
-              title="Your Location"
-              description={`Accuracy: ${location.accuracy?.toFixed(0)}m`}
-              pinColor="blue"
-            />
-          )}
+          {/* Audio pin markers */}
+          {audioPins.map((pin, index) => {
+            if (index === 0) console.log('🗺️ Rendering', audioPins.length, 'audio pins on map')
+            console.log(`🟠 Pin ${index + 1}:`, pin.id, 'at', pin.lat, pin.lng, 'created:', new Date(pin.created_at).toLocaleTimeString())
+            return (
+              <Marker
+                key={pin.id}
+                coordinate={{
+                  latitude: pin.lat,
+                  longitude: pin.lng,
+                }}
+                title={pin.title || `Voice Memo ${index + 1}`}
+                description={`Tap to play • ${new Date(pin.created_at).toLocaleDateString()}`}
+                pinColor="orange"
+                onPress={() => handlePinPress(pin)}
+              />
+            )
+          })}
         </MapView>
 
         {/* Error overlay */}
@@ -206,6 +406,22 @@ const MapScreen: React.FC<MapScreenProps> = ({
             <Text style={styles.loadingText}>Getting your location...</Text>
           </View>
         )}
+
+        {/* Creating pin overlay */}
+        {isCreatingPin && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#2A9D8F" />
+            <Text style={styles.loadingText}>Creating audio pin...</Text>
+          </View>
+        )}
+
+        {/* Loading pins indicator */}
+        {isLoadingPins && (
+          <View style={styles.topLoadingIndicator}>
+            <ActivityIndicator size="small" color="#2A9D8F" />
+            <Text style={styles.topLoadingText}>Loading pins...</Text>
+          </View>
+        )}
       </View>
 
       {/* Bottom controls */}
@@ -217,8 +433,11 @@ const MapScreen: React.FC<MapScreenProps> = ({
           <Text style={styles.locationButtonText}>📍</Text>
         </TouchableOpacity>
         
-        {/* Record button placeholder */}
-        <TouchableOpacity style={styles.recordButton}>
+        {/* Record button */}
+        <TouchableOpacity 
+          style={styles.recordButton}
+          onPress={handleRecordButtonPress}
+        >
           <AudioIcon size={24} />
         </TouchableOpacity>
       </View>
@@ -236,6 +455,21 @@ const MapScreen: React.FC<MapScreenProps> = ({
           )}
         </View>
       )}
+
+      {/* Voice Recording Modal */}
+      <VoiceRecordingModal
+        visible={isRecordingModalVisible}
+        onClose={handleRecordingModalClose}
+        onSendRecording={handleRecordingSend}
+      />
+
+      {/* Audio Playback Modal */}
+      <AudioPlaybackModal
+        visible={isPlaybackModalVisible}
+        onClose={handlePlaybackModalClose}
+        pin={selectedPin}
+        onDelete={handlePinDelete}
+      />
     </View>
   )
 }
@@ -474,6 +708,29 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  topLoadingIndicator: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    padding: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  topLoadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#2A9D8F',
+    fontWeight: '500',
   },
 })
 
