@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
     marginBottom: Math.max(30, height * 0.04), // Responsive margin
   },
   logoImage: {
-    width: Math.min(250, width * 0.7), // Wide enough for script text
-    height: Math.min(100, height * 0.12), // Tall enough for script styling
+    width: Math.min(320, width * 0.8), // Increased from 250 to 320
+    height: Math.min(130, height * 0.15), // Increased from 100 to 130
     marginBottom: 16,
   },
   tagline: {

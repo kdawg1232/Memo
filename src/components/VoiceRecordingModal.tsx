@@ -371,9 +371,26 @@ const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
   }, [])
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
+    <Modal visible={visible} transparent animationType="fade">
+      <Animated.View 
+        style={[
+          styles.modalOverlay,
+          {
+            opacity: visible ? 1 : 0,
+          }
+        ]}
+      >
+        <Animated.View 
+          style={[
+            styles.modalContainer,
+            {
+              transform: [{
+                scale: visible ? 1 : 0.9
+              }],
+              opacity: visible ? 1 : 0,
+            }
+          ]}
+        >
           <Text style={styles.title}>Voice Memo</Text>
           
           {/* Progress Bar */}
@@ -455,8 +472,8 @@ const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
               </TouchableOpacity>
             )}
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   )
 }

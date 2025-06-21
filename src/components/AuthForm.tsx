@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   SafeAreaView,
+  Image,
 } from 'react-native'
 import { useAuth } from '../hooks/useAuth'
 
@@ -60,10 +61,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ initialMode = 'login', onBack }) =>
 
         {/* Logo Section */}
         <View style={styles.logoSection}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>M</Text>
-          </View>
-          <Text style={styles.appTitle}>Memo</Text>
+          <Image 
+            source={require('../../assets/memo-logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Form Section */}
@@ -78,7 +80,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ initialMode = 'login', onBack }) =>
           <TextInput
             style={styles.input}
             placeholder="Email"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#000000"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -88,7 +90,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ initialMode = 'login', onBack }) =>
           <TextInput
             style={styles.input}
             placeholder="Password"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#000000"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -143,32 +145,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#2A9D8F',
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 300,
+    height: 150,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  logoText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  appTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#264653',
   },
   formContainer: {
     flex: 1,
@@ -187,29 +167,39 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 2,
+    borderColor: '#F4A261',
     backgroundColor: '#FFFFFF',
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 12,
+    padding: 18,
+    marginBottom: 18,
+    borderRadius: 16,
     fontSize: 16,
     color: '#374151',
-  },
-  button: {
-    backgroundColor: '#264653',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: '#F4A261',
+  },
+  button: {
+    backgroundColor: '#264653',
+    padding: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 18,
+    shadowColor: '#264653',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
   buttonDisabled: {
     backgroundColor: '#9CA3AF',

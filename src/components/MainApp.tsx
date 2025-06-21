@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native'
+import React, { useState, useRef, useEffect } from 'react'
+import { View, StyleSheet, TouchableOpacity, Text, Animated, Dimensions } from 'react-native'
 import MapScreen from '../screens/MapScreen'
 import FriendsScreen from '../screens/FriendsScreen'
 import ProfileScreen from '../screens/ProfileScreen'
@@ -7,11 +7,59 @@ import { MapIcon, ProfileIcon, FriendsIcon } from './Icons'
 
 type ScreenType = 'map' | 'friends' | 'profile'
 
+const { width } = Dimensions.get('window')
+
 const MainApp: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('map')
   const [shouldCenterOnUser, setShouldCenterOnUser] = useState<boolean>(false)
+  
+  // Animation values for screen transitions
+  const slideAnim = useRef(new Animated.Value(0)).current
+  const fadeAnim = useRef(new Animated.Value(1)).current
 
-  // Navigation handlers
+  // Animation function for smooth transitions
+  const animateToScreen = (newScreen: ScreenType) => {
+    if (newScreen === currentScreen) return
+
+    // Determine slide direction based on screen order
+    const screenOrder: ScreenType[] = ['profile', 'map', 'friends']
+    const currentIndex = screenOrder.indexOf(currentScreen)
+    const newIndex = screenOrder.indexOf(newScreen)
+    const direction = newIndex > currentIndex ? 'left' : 'right'
+    
+    // Start transition animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0.3,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: direction === 'left' ? -width * 0.1 : width * 0.1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Change screen at halfway point
+      setCurrentScreen(newScreen)
+      
+      // Complete the transition
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start()
+    })
+  }
+
+  // Navigation handlers with animations
   const handleNavigateToMap = () => {
     console.log('🗺️ Map button pressed, current screen:', currentScreen)
     if (currentScreen === 'map') {
@@ -19,13 +67,21 @@ const MainApp: React.FC = () => {
       console.log('🎯 Already on map, triggering center on user location')
       setShouldCenterOnUser(true)
     } else {
-      // Otherwise just navigate to map
-      console.log('📱 Navigating to map screen')
-      setCurrentScreen('map')
+      // Otherwise animate to map screen
+      console.log('📱 Animating to map screen')
+      animateToScreen('map')
     }
   }
-  const handleNavigateToFriends = () => setCurrentScreen('friends')
-  const handleNavigateToProfile = () => setCurrentScreen('profile')
+
+  const handleNavigateToFriends = () => {
+    console.log('👥 Animating to friends screen')
+    animateToScreen('friends')
+  }
+
+  const handleNavigateToProfile = () => {
+    console.log('👤 Animating to profile screen')
+    animateToScreen('profile')
+  }
 
   // Render the current screen
   const renderCurrentScreen = () => {
@@ -72,22 +128,30 @@ const MainApp: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Main Content */}
-      <View style={styles.contentContainer}>
+      {/* Main Content with Animation */}
+      <Animated.View 
+        style={[
+          styles.contentContainer,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateX: slideAnim }]
+          }
+        ]}
+      >
         {renderCurrentScreen()}
-      </View>
+      </Animated.View>
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
         <TouchableOpacity
           style={[
             styles.navButton,
-            currentScreen === 'friends' && styles.navButtonActive
+            currentScreen === 'profile' && styles.navButtonActive
           ]}
-          onPress={handleNavigateToFriends}
+          onPress={handleNavigateToProfile}
         >
           <View style={styles.navIcon}>
-            {getNavigationIcon('friends', currentScreen === 'friends')}
+            {getNavigationIcon('profile', currentScreen === 'profile')}
           </View>
         </TouchableOpacity>
 
@@ -106,12 +170,12 @@ const MainApp: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.navButton,
-            currentScreen === 'profile' && styles.navButtonActive
+            currentScreen === 'friends' && styles.navButtonActive
           ]}
-          onPress={handleNavigateToProfile}
+          onPress={handleNavigateToFriends}
         >
           <View style={styles.navIcon}>
-            {getNavigationIcon('profile', currentScreen === 'profile')}
+            {getNavigationIcon('friends', currentScreen === 'friends')}
           </View>
         </TouchableOpacity>
       </View>
@@ -156,6 +220,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-})
+  })
 
 export default MainApp 

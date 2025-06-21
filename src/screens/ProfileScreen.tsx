@@ -17,25 +17,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack }) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onNavigateBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Map</Text>
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
-        <View style={styles.placeholder} />
       </View>
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.titleText}>👤 Profile</Text>
-        
-        {/* User Info */}
-        <View style={styles.userInfo}>
-          <Text style={styles.emailText}>{user?.email}</Text>
-          <Text style={styles.memberSinceText}>
-            Member since {new Date(user?.created_at || '').toLocaleDateString()}
-          </Text>
-        </View>
-
         {/* Stats Placeholder */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
@@ -63,8 +49,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FBF1E8',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 50,
@@ -73,48 +58,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-  backButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  backButtonText: {
-    color: '#2A9D8F',
-    fontSize: 16,
-    fontWeight: '500',
-  },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#264653',
-  },
-  placeholder: {
-    width: 50, // Same width as back button for centering
   },
   content: {
     flex: 1,
     alignItems: 'center',
     padding: 20,
     paddingTop: 50,
-  },
-  titleText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#264653',
-    marginBottom: 30,
-  },
-  userInfo: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  emailText: {
-    fontSize: 18,
-    color: '#264653',
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  memberSinceText: {
-    fontSize: 14,
-    color: '#666',
   },
   statsContainer: {
     flexDirection: 'row',

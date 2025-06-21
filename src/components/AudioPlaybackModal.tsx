@@ -322,13 +322,30 @@ const AudioPlaybackModal: React.FC<AudioPlaybackModalProps> = ({
 
   return (
     <Modal
-      animationType="slide"
+      animationType="fade"
       transparent={true}
       visible={visible}
       onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+      <Animated.View 
+        style={[
+          styles.overlay,
+          {
+            opacity: visible ? 1 : 0,
+          }
+        ]}
+      >
+        <Animated.View 
+          style={[
+            styles.modalContainer,
+            {
+              transform: [{
+                scale: visible ? 1 : 0.9
+              }],
+              opacity: visible ? 1 : 0,
+            }
+          ]}
+        >
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Audio Pin</Text>
@@ -435,8 +452,8 @@ const AudioPlaybackModal: React.FC<AudioPlaybackModalProps> = ({
               </Text>
             </View>
           )}
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 };
