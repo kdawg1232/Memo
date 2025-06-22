@@ -80,7 +80,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ initialMode = 'login', onBack }) =>
           <TextInput
             style={styles.input}
             placeholder="Email"
-            placeholderTextColor="#000000"
+            placeholderTextColor="#808080"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -90,7 +90,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ initialMode = 'login', onBack }) =>
           <TextInput
             style={styles.input}
             placeholder="Password"
-            placeholderTextColor="#000000"
+            placeholderTextColor="#808080"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -123,7 +123,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ initialMode = 'login', onBack }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FBF1E8',
+    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#2A9D8F',
+    color: '#000000',
     fontWeight: '600',
   },
   logoSection: {
@@ -158,24 +158,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#264653',
+    color: '#000000',
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 32,
-    color: '#6B7280',
+    color: '#808080',
   },
   input: {
     borderWidth: 2,
-    borderColor: '#F4A261',
+    borderColor: '#F5F5F5',
     backgroundColor: '#FFFFFF',
     padding: 18,
     marginBottom: 18,
     borderRadius: 16,
     fontSize: 16,
-    color: '#374151',
-    shadowColor: '#000',
+    color: '#000000',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 3,
@@ -184,15 +184,15 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
     borderBottomWidth: 2,
-    borderBottomColor: '#F4A261',
+    borderBottomColor: '#F5F5F5',
   },
   button: {
-    backgroundColor: '#264653',
+    backgroundColor: '#000000',
     padding: 18,
     borderRadius: 16,
     alignItems: 'center',
     marginBottom: 18,
-    shadowColor: '#264653',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   buttonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: '#808080',
   },
   buttonText: {
     color: '#FFFFFF',
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   switchText: {
-    color: '#2A9D8F',
+    color: '#404040',
     fontSize: 16,
     fontWeight: '600',
   },

@@ -9,6 +9,7 @@ interface UseLocationState {
   error: string | null
   permissionStatus: LocationPermissionStatus
   isLocationEnabled: boolean
+  initializing: boolean
 }
 
 interface UseLocationReturn extends UseLocationState {
@@ -26,6 +27,7 @@ export function useLocation(): UseLocationReturn {
     error: null,
     permissionStatus: 'undetermined',
     isLocationEnabled: false,
+    initializing: true,
   })
 
   // Keep track of location watching subscription
@@ -41,6 +43,7 @@ export function useLocation(): UseLocationReturn {
         ...prev,
         permissionStatus,
         isLocationEnabled,
+        initializing: false,
       }))
 
       // If we have permission, get initial location

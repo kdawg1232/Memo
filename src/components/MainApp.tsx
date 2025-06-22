@@ -12,6 +12,7 @@ const { width } = Dimensions.get('window')
 const MainApp: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('map')
   const [shouldCenterOnUser, setShouldCenterOnUser] = useState<boolean>(false)
+  const [mapRefreshTrigger, setMapRefreshTrigger] = useState<number>(0)
   
   // Animation values for screen transitions
   const slideAnim = useRef(new Animated.Value(0)).current
@@ -67,6 +68,11 @@ const MainApp: React.FC = () => {
       console.log('🎯 Already on map, triggering center on user location')
       setShouldCenterOnUser(true)
     } else {
+      // If coming from ProfileScreen, trigger a refresh to reload pins
+      if (currentScreen === 'profile') {
+        console.log('🔄 Returning from profile, triggering map refresh')
+        setMapRefreshTrigger(Date.now())
+      }
       // Otherwise animate to map screen
       console.log('📱 Animating to map screen')
       animateToScreen('map')
@@ -91,6 +97,7 @@ const MainApp: React.FC = () => {
           <MapScreen 
             shouldCenterOnUser={shouldCenterOnUser}
             onCenterCompleted={() => setShouldCenterOnUser(false)}
+            refreshTrigger={mapRefreshTrigger}
           />
         )
       case 'friends':
@@ -102,6 +109,7 @@ const MainApp: React.FC = () => {
           <MapScreen 
             shouldCenterOnUser={shouldCenterOnUser}
             onCenterCompleted={() => setShouldCenterOnUser(false)}
+            refreshTrigger={mapRefreshTrigger}
           />
         )
     }
@@ -111,7 +119,7 @@ const MainApp: React.FC = () => {
   const getNavigationIcon = (screen: ScreenType, isActive: boolean) => {
     const iconSize = 24
     const iconStyle = {
-      opacity: isActive ? 1 : 0.6, // Use opacity instead of color for PNG images
+      opacity: isActive ? 1 : 0.4, // Changed from 0.6 to 0.4 for better contrast with neutral theme
     }
     
     switch (screen) {
@@ -186,7 +194,7 @@ const MainApp: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
   contentContainer: {
     flex: 1,
@@ -195,12 +203,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     paddingVertical: 10,
-    paddingBottom: 20, // Account for safe area
+    paddingBottom: 20,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    shadowColor: '#000',
+    borderTopColor: '#F5F5F5',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -214,12 +222,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   navButtonActive: {
-    backgroundColor: '#2A9D8F',
+    backgroundColor: '#F5F5F5',
   },
   navIcon: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  })
+})
 
 export default MainApp 

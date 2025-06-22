@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#264653',
+    color: '#000000',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -499,14 +499,14 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: 18,
-    color: '#E76F51',
+    color: '#000000',
   },
   closeButton: {
     padding: 8,
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#264653',
+    color: '#000000',
     fontWeight: 'bold',
   },
   pinInfo: {
@@ -516,32 +516,32 @@ const styles = StyleSheet.create({
   pinTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#264653',
+    color: '#000000',
     textAlign: 'center',
     marginBottom: 8,
   },
   pinDate: {
     fontSize: 14,
-    color: '#666666',
+    color: '#808080',
     textAlign: 'center',
     marginBottom: 8,
   },
   pinDescription: {
     fontSize: 14,
-    color: '#666666',
+    color: '#808080',
     textAlign: 'center',
     fontStyle: 'italic',
   },
   progressContainer: {
     height: 4,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#F5F5F5',
     borderRadius: 2,
     marginBottom: 16,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#2A9D8F',
+    backgroundColor: '#000000',
     borderRadius: 2,
   },
   timeContainer: {
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 14,
-    color: '#666666',
+    color: '#808080',
     fontFamily: 'monospace',
   },
   controlsContainer: {
@@ -564,21 +564,21 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
   },
   stopIcon: {
     width: 16,
     height: 16,
-    backgroundColor: '#E76F51',
+    backgroundColor: '#000000',
     borderRadius: 2,
   },
   playButton: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#2A9D8F',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000000',
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   playButtonActive: {
-    backgroundColor: '#E9C46A',
+    backgroundColor: '#404040',
   },
   playButtonText: {
     fontSize: 24,
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     textAlign: 'center',
-    color: '#E76F51',
+    color: '#000000',
     fontSize: 14,
     marginTop: 16,
     fontStyle: 'italic',
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   },
   debugText: {
     fontSize: 10,
-    color: '#666666',
+    color: '#808080',
     fontFamily: 'monospace',
   },
 });

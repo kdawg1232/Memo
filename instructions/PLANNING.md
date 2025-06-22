@@ -1,7 +1,7 @@
 # Planning.md
 
 ## 🧭 Project Overview
-**Audio Geo-Pinning** is a location-based voice journaling app that lets users drop short audio memos at specific physical locations on a map. These memos are viewable and listenable by anyone who visits that spot virtually. It’s like geocaching meets podcasting — leave your thoughts, stories, or tips where they matter most.
+**Audio Geo-Pinning** is a location-based voice journaling app that lets users drop short audio memos at specific physical locations on a map. These memos are viewable and listenable by anyone who visits that spot virtually. It's like geocaching meets podcasting — leave your thoughts, stories, or tips where they matter most.
 
 ## 🎯 MVP Goals (24-Hour Build)
 Build a minimum viable version that supports:
@@ -15,7 +15,7 @@ Build a minimum viable version that supports:
 | Feature                | Description |
 |------------------------|-------------|
 | **Record Audio**       | Users can record short voice messages via their phone mic |
-| **Pin to Location**    | After recording, the audio is geo-pinned to the user’s current GPS location |
+| **Pin to Location**    | After recording, the audio is geo-pinned to the user's current GPS location |
 | **Map View**           | Shows user location and nearby audio pins |
 | **Playback Pins**      | Users can tap pins and play audio in-app |
 | **User Auth**          | Auth via email  |
@@ -58,14 +58,31 @@ Build a minimum viable version that supports:
 
 Colors Scheme: 
 
-## Color Palette
-Use the following brand colors consistently across buttons, headers, and accents:
+## Color Palette - Neutral Black & White Theme
+Use the following neutral colors consistently across all UI elements for a clean, modern, minimalist aesthetic:
 
-- `#264653` – Dark Teal (primary background or nav bar)
-- `#2A9D8F` – Teal (buttons and action highlights)
-- `#E9C46A` – Soft Yellow (secondary accent)
-- `#F4A261` – Sandy Orange (warnings or secondary buttons)
-- `#E76F51` – Coral/Red-Orange (delete or danger buttons)
+### Primary Colors
+- `#000000` – Pure Black (primary text, icons, emphasis, primary buttons)
+- `#FFFFFF` – Pure White (backgrounds, contrast elements, button text on black)
+- `#2C2C2C` – Charcoal (secondary text, subtle emphasis)
+- `#F5F5F5` – Light Gray (subtle backgrounds, dividers, inactive button backgrounds)
+- `#808080` – Medium Gray (inactive states, secondary text, disabled elements)
+- `#404040` – Dark Gray (borders, subtle contrasts, tertiary text)
+
+### Usage Guidelines
+- **Primary Actions**: Pure black (`#000000`) for maximum emphasis
+- **Secondary Actions**: Dark gray (`#404040`) for moderate emphasis
+- **Inactive/Disabled**: Medium gray (`#808080`) for reduced emphasis
+- **Main Backgrounds**: Pure white (`#FFFFFF`) for clean, spacious feel
+- **Subtle Backgrounds**: Light gray (`#F5F5F5`) for cards, sections, inactive areas
+- **Borders/Dividers**: Light gray (`#F5F5F5`) for subtle separation
+- **Text Hierarchy**: Black for primary, charcoal for secondary, dark gray for tertiary
+
+### Design Principles
+- Maintain excellent contrast ratios for accessibility
+- Use opacity variations for hover/pressed states
+- Rely on typography and spacing for visual hierarchy
+- Keep the design timeless and professional
 
 ## 🔚 Success Criteria
 By the end of 24 hours, the user should be able to:
@@ -76,4 +93,4 @@ By the end of 24 hours, the user should be able to:
 - View other pins within a short distance
 - Sign in 
 
-Let me know if you’d like to extend this to v2 features like comments, privacy controls, pin filtering, or social discovery.
+Let me know if you'd like to extend this to v2 features like comments, privacy controls, pin filtering, or social discovery.

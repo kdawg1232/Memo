@@ -14,7 +14,7 @@ import { useAudioRecorder, useAudioPlayer, RecordingPresets, AudioModule } from 
 interface VoiceRecordingModalProps {
   visible: boolean
   onClose: () => void
-  onSendRecording: (recordingUri: string) => void
+  onSendRecording: (recordingUri: string, durationSeconds: number) => void
 }
 
 type RecordingState = 'idle' | 'recording' | 'stopped' | 'playing' | 'paused'
@@ -311,10 +311,12 @@ const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
         // Final check of the file before sending
         const response = await fetch(recordingUri)
         const blob = await response.blob()
+        const durationSeconds = Math.floor(recordingDuration / 1000) // Convert ms to seconds
+        
         console.log('📤 Final file check before send:')
         console.log('  - Size:', blob.size, 'bytes')
         console.log('  - Type:', blob.type)
-        console.log('  - Duration:', recordingDuration, 'ms')
+        console.log('  - Duration:', recordingDuration, 'ms (', durationSeconds, 'seconds)')
         
         if (blob.size === 0) {
           console.error('❌ Cannot send empty recording file!')
@@ -322,7 +324,8 @@ const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
           return
         }
         
-        onSendRecording(recordingUri)
+        // Pass both recording URI and duration in seconds
+        onSendRecording(recordingUri, durationSeconds)
         resetModal()
         onClose()
       } catch (error) {
@@ -468,7 +471,7 @@ const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
                 style={[styles.controlButton, styles.sendButton]}
                 onPress={sendRecording}
               >
-                <Text style={styles.sendButtonText}>📤 Send</Text>
+                <Text style={styles.sendButtonText}>Send</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -486,12 +489,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: '#2A9D8F',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 30,
     alignItems: 'center',
     minWidth: 300,
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -503,24 +506,24 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#000000',
     marginBottom: 20,
   },
   progressBarContainer: {
     width: '100%',
     height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: '#F5F5F5',
     borderRadius: 3,
     marginBottom: 15,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#E9C46A',
+    backgroundColor: '#000000',
     borderRadius: 3,
   },
   timer: {
     fontSize: 18,
-    color: '#FFFFFF',
+    color: '#000000',
     fontFamily: 'Courier',
     marginBottom: 30,
   },
@@ -533,7 +536,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -543,7 +546,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   recordButton: {
-    backgroundColor: '#E76F51',
+    backgroundColor: '#000000',
   },
   recordButtonInner: {
     width: 30,
@@ -552,7 +555,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   stopButton: {
-    backgroundColor: '#E76F51',
+    backgroundColor: '#000000',
   },
   stopButtonInner: {
     width: 25,
@@ -561,9 +564,9 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   playButton: {
-    backgroundColor: '#2A9D8F',
+    backgroundColor: '#000000',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: '#000000',
   },
   playButtonText: {
     color: '#FFFFFF',
@@ -572,7 +575,7 @@ const styles = StyleSheet.create({
     marginLeft: 3,
   },
   pauseButton: {
-    backgroundColor: '#F4A261',
+    backgroundColor: '#000000',
   },
   pauseButtonText: {
     color: '#FFFFFF',
@@ -590,7 +593,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     minWidth: 100,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -600,18 +603,20 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cancelButton: {
-    backgroundColor: '#E76F51',
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#404040',
   },
   cancelButtonText: {
-    color: '#FFFFFF',
+    color: '#000000',
     fontSize: 16,
     fontWeight: 'bold',
   },
   sendButton: {
-    backgroundColor: '#E9C46A',
+    backgroundColor: '#000000',
   },
   sendButtonText: {
-    color: '#264653',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },

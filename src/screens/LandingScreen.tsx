@@ -77,7 +77,7 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onGetStarted, onSignIn })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FBF1E8', // Lighter version of sandy orange (#F4A261)
+    backgroundColor: '#FFFFFF', // Changed to pure white
   },
   content: {
     flex: 1,
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: Math.min(18, width * 0.045), // Responsive font size
-    color: '#6B7280',
+    color: '#808080', // Changed to medium gray
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -106,10 +106,10 @@ const styles = StyleSheet.create({
     gap: Math.max(12, height * 0.015), // Responsive gap
   },
   featureCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF', // Keep pure white
     padding: Math.max(18, height * 0.022), // Responsive padding
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: '#000000', // Changed shadow color to black
     shadowOffset: {
       width: 0,
       height: 2,
@@ -118,17 +118,19 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     alignItems: 'center', // Center align all content in cards
+    borderWidth: 1,
+    borderColor: '#F5F5F5', // Added subtle border
   },
   featureTitle: {
     fontSize: Math.min(18, width * 0.045), // Responsive font size
     fontWeight: 'bold',
-    color: '#264653',
+    color: '#000000', // Changed to pure black
     marginBottom: 6,
     textAlign: 'center', // Center align title text
   },
   featureDescription: {
     fontSize: Math.min(14, width * 0.035), // Responsive font size
-    color: '#6B7280',
+    color: '#808080', // Changed to medium gray
     lineHeight: Math.min(20, width * 0.05),
     textAlign: 'center', // Center align description text
   },
@@ -137,11 +139,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   getStartedButton: {
-    backgroundColor: '#264653',
+    backgroundColor: '#000000', // Changed to pure black
     paddingVertical: Math.max(14, height * 0.018), // Responsive padding
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#000000', // Changed shadow color to black
     shadowOffset: {
       width: 0,
       height: 2,
@@ -151,27 +153,27 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   getStartedButtonText: {
-    color: '#FFFFFF',
+    color: '#FFFFFF', // Keep white text on black background
     fontSize: Math.min(16, width * 0.04), // Responsive font size
     fontWeight: 'bold',
   },
   signInButton: {
     borderWidth: 2,
-    borderColor: '#2A9D8F',
+    borderColor: '#404040', // Changed to dark gray
     paddingVertical: Math.max(14, height * 0.018), // Responsive padding
     borderRadius: 12,
     alignItems: 'center',
     backgroundColor: 'transparent',
   },
   signInButtonText: {
-    color: '#2A9D8F',
+    color: '#000000', // Changed to pure black
     fontSize: Math.min(16, width * 0.04), // Responsive font size
     fontWeight: 'bold',
   },
   footerText: {
     textAlign: 'center',
     fontSize: Math.min(14, width * 0.035), // Responsive font size
-    color: '#6B7280',
+    color: '#808080', // Changed to medium gray
     marginTop: Math.max(16, height * 0.02), // Responsive margin
     lineHeight: Math.min(20, width * 0.05),
   },

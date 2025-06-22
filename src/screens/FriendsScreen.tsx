@@ -32,7 +32,7 @@ const FriendsScreen: React.FC<FriendsScreenProps> = ({ onNavigateBack }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FBF1E8',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -41,23 +41,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 50,
     paddingBottom: 10,
-    backgroundColor: '#FBF1E8',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#F5F5F5',
   },
   backButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   backButtonText: {
-    color: '#2A9D8F',
+    color: '#000000',
     fontSize: 16,
     fontWeight: '500',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#264653',
+    color: '#000000',
   },
   placeholder: {
     width: 50, // Same width as back button for centering
@@ -71,19 +71,19 @@ const styles = StyleSheet.create({
   titleText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#264653',
+    color: '#000000',
     marginBottom: 20,
   },
   descriptionText: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#666',
+    color: '#808080',
     marginBottom: 30,
     lineHeight: 24,
   },
   comingSoonText: {
     fontSize: 18,
-    color: '#E76F51',
+    color: '#404040',
     fontStyle: 'italic',
   },
 })
