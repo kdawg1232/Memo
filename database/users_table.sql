@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     username TEXT UNIQUE NOT NULL,
+    profile_picture_url TEXT, -- URL to profile picture in storage
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     
@@ -49,12 +50,13 @@ CREATE POLICY "Users can update their own profile" ON public.users
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS trigger AS $$
 BEGIN
-    INSERT INTO public.users (id, first_name, last_name, username)
+    INSERT INTO public.users (id, first_name, last_name, username, profile_picture_url)
     VALUES (
         NEW.id,
         COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
         COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
-        COALESCE(NEW.raw_user_meta_data->>'username', '')
+        COALESCE(NEW.raw_user_meta_data->>'username', ''),
+        NULL -- Profile picture starts as null
     );
     RETURN NEW;
 END;

@@ -10,18 +10,21 @@ import {
   FlatList,
   Animated,
   PanResponder,
-  Dimensions
+  Dimensions,
+  Image
 } from 'react-native'
 import { useAuth } from '../hooks/useAuth'
-import { fetchUserPins, AudioPin, deleteAudioPin } from '../services/database'
+import { fetchUserPins, AudioPin, deleteAudioPin, DatabaseService, PendingGroupInvitation } from '../services/database'
 import { useAudioPlayer, AudioModule } from 'expo-audio'
 import * as Location from 'expo-location'
+// import * as ImagePicker from 'expo-image-picker'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const SWIPE_THRESHOLD = 50 // Minimum swipe distance to trigger delete
 
 interface ProfileScreenProps {
   onNavigateBack: () => void
+  onNavigateToSettings: () => void
 }
 
 interface UserStats {
@@ -212,8 +215,8 @@ const PinItem: React.FC<PinItemProps> = ({
             </View>
           </View>
           
-          {/* Progress bar - show when playing or paused */}
-          {(item.isPlaying || item.isPaused) && (
+          {/* Progress bar - show only when playing, hide when paused */}
+          {item.isPlaying && !item.isPaused && (
             <View style={styles.progressContainer}>
               <View style={styles.progressBar}>
                 <View 
@@ -234,13 +237,15 @@ const PinItem: React.FC<PinItemProps> = ({
   )
 }
 
-const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack }) => {
-  const { user, signOut } = useAuth()
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack, onNavigateToSettings }) => {
+  const { user, userProfile, refreshUserProfile } = useAuth()
   const [stats, setStats] = useState<UserStats>({ pinCount: 0, discoveryCount: 0 })
   const [userPins, setUserPins] = useState<PinWithLocation[]>([])
   const [loading, setLoading] = useState(true)
   const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null)
   const [isPaused, setIsPaused] = useState(false)
+  const [uploadingProfilePicture, setUploadingProfilePicture] = useState(false)
+  const [pendingInvitations, setPendingInvitations] = useState<PendingGroupInvitation[]>([])
   
   // Audio player setup
   const audioPlayer = useAudioPlayer()
@@ -441,11 +446,62 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack }) => {
         setUserPins([])
         setStats({ pinCount: 0, discoveryCount: 0 })
       }
+
+      // Load pending group invitations
+      await loadPendingInvitations()
     } catch (error) {
       console.error('Error loading user data:', error)
       Alert.alert('Error', 'Failed to load profile data')
     } finally {
       setLoading(false)
+    }
+  }
+
+  /**
+   * Load pending group invitations for the user
+   */
+  const loadPendingInvitations = async () => {
+    if (!user?.id) return
+
+    try {
+      const { data, error } = await DatabaseService.getPendingGroupInvitations(user.id)
+      
+      if (error) {
+        console.error('Error fetching pending invitations:', error)
+        return
+      }
+
+      if (data) {
+        setPendingInvitations(data)
+        console.log(`📨 Found ${data.length} pending group invitations`)
+      }
+    } catch (error) {
+      console.error('Exception loading pending invitations:', error)
+    }
+  }
+
+  /**
+   * Handle group invitation response (accept/decline)
+   */
+  const handleInvitationResponse = async (invitationId: string, response: 'accepted' | 'declined') => {
+    try {
+      const { error } = await DatabaseService.respondToGroupInvitation(invitationId, response)
+      
+      if (error) {
+        Alert.alert('Error', 'Failed to respond to invitation. Please try again.')
+        return
+      }
+
+      // Remove the invitation from the list
+      setPendingInvitations(prev => prev.filter(inv => inv.id !== invitationId))
+      
+      Alert.alert(
+        'Success',
+        `Group invitation ${response === 'accepted' ? 'accepted' : 'declined'} successfully!`
+      )
+    } catch (error) {
+      console.error('Error responding to invitation:', error)
+      Alert.alert('Error', 'Failed to respond to invitation. Please try again.')
     }
   }
 
@@ -598,22 +654,25 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack }) => {
   }
 
   /**
-   * Handle sign out
+   * Handle profile picture upload - placeholder for now
    */
-  const handleSignOut = async () => {
-    // Stop any playing audio first
-    await handleStopAudio()
-    
+  const handleProfilePictureUpload = async () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      'Profile Picture',
+      'Profile picture upload requires a development build with expo-image-picker. Would you like to:\n\n1. Build a new development build\n2. Skip this feature for now',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive',
-          onPress: async () => {
-    await signOut()
+        {
+          text: 'Skip for Now',
+          style: 'cancel'
+        },
+        {
+          text: 'Learn How to Build',
+          onPress: () => {
+            Alert.alert(
+              'Development Build Required',
+              'To use profile pictures:\n\n1. Run: npx expo run:ios (or run:android)\n2. Or build with EAS: eas build --profile development\n\nThis adds the native module to your custom development client.',
+              [{ text: 'OK' }]
+            )
           }
         }
       ]
@@ -778,7 +837,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack }) => {
     >
       {/* Header */}
       <View style={styles.header}>
+        <View style={styles.headerLeft} />
         <Text style={styles.headerTitle}>Profile</Text>
+        <TouchableOpacity style={styles.settingsButton} onPress={onNavigateToSettings}>
+          <Text style={styles.settingsButtonText}>⚙️</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -794,12 +857,35 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack }) => {
       >
         {/* User Info Section */}
         <View style={styles.userSection}>
-          <View style={styles.userAvatar}>
-            <Text style={styles.userAvatarText}>
-              {user?.email?.charAt(0).toUpperCase() || 'U'}
-            </Text>
-          </View>
-          <Text style={styles.userEmail}>{user?.email}</Text>
+          <TouchableOpacity 
+            style={styles.userAvatar} 
+            onPress={handleProfilePictureUpload}
+            disabled={uploadingProfilePicture}
+          >
+            {uploadingProfilePicture ? (
+              <ActivityIndicator size="large" color="#FFFFFF" />
+            ) : userProfile?.profile_picture_url ? (
+              <Image 
+                source={{ uri: userProfile.profile_picture_url }} 
+                style={styles.userAvatarImage}
+              />
+            ) : (
+              <Text style={styles.userAvatarText}>
+                {userProfile ? userProfile.first_name.charAt(0).toUpperCase() + userProfile.last_name.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || 'U')}
+              </Text>
+            )}
+            {/* Upload indicator overlay */}
+            {!uploadingProfilePicture && (
+              <View style={styles.avatarOverlay}>
+                <Text style={styles.avatarOverlayText}>📷</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          {userProfile ? (
+            <Text style={styles.userName}>{userProfile.first_name} {userProfile.last_name}</Text>
+          ) : (
+            <Text style={styles.userName}>Loading...</Text>
+          )}
         </View>
 
         {/* Stats Section */}
@@ -827,7 +913,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack }) => {
             />
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateIcon}>🎤</Text>
               <Text style={styles.emptyStateTitle}>No Audio Pins Yet</Text>
               <Text style={styles.emptyStateDescription}>
                 Start recording your first audio memo on the map to see it here!
@@ -836,10 +921,49 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack }) => {
           )}
         </View>
 
-        {/* Sign Out Button */}
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Text style={styles.signOutButtonText}>Sign Out</Text>
-        </TouchableOpacity>
+        {/* Group Invitations Section */}
+        {pendingInvitations.length > 0 && (
+          <View style={styles.invitationsSection}>
+            <Text style={styles.sectionTitle}>Group Invitations</Text>
+            <View style={styles.invitationAlert}>
+              <Text style={styles.invitationAlertText}>
+                🎉 You have {pendingInvitations.length} group invitation{pendingInvitations.length !== 1 ? 's' : ''}!
+              </Text>
+            </View>
+            
+            {pendingInvitations.map((invitation) => (
+              <View key={invitation.id} style={styles.invitationItem}>
+                <View style={styles.invitationInfo}>
+                  <Text style={styles.invitationGroupName}>{invitation.group.name}</Text>
+                  <Text style={styles.invitationFromText}>
+                    Invited by {invitation.invited_by_user.first_name} {invitation.invited_by_user.last_name}
+                  </Text>
+                  <Text style={styles.invitationDateText}>
+                    {formatDate(invitation.joined_at)}
+                  </Text>
+                </View>
+                
+                <View style={styles.invitationActions}>
+                  <TouchableOpacity
+                    style={styles.declineButton}
+                    onPress={() => handleInvitationResponse(invitation.id, 'declined')}
+                  >
+                    <Text style={styles.declineButtonText}>Decline</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={styles.acceptButton}
+                    onPress={() => handleInvitationResponse(invitation.id, 'accepted')}
+                  >
+                    <Text style={styles.acceptButtonText}>Accept</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+
       </ScrollView>
     </View>
   )
@@ -862,7 +986,8 @@ const styles = StyleSheet.create({
     color: '#808080',
   },
   header: {
-    justifyContent: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 50,
@@ -871,9 +996,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F5F5F5',
   },
+  headerLeft: {
+    width: 40, // Balance the settings button on the right
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#000000',
+    flex: 1,
+    textAlign: 'center',
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  settingsButtonText: {
+    fontSize: 20,
     color: '#000000',
   },
   scrollView: {
@@ -897,6 +1037,34 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  userAvatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  avatarOverlayText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
+  userName: {
+    fontSize: 18,
+    color: '#000000',
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
   userEmail: {
     fontSize: 16,
@@ -1040,10 +1208,6 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     paddingHorizontal: 20,
   },
-  emptyStateIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
   emptyStateTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -1057,23 +1221,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  signOutButton: {
-    backgroundColor: '#F5F5F5',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 40,
-    borderWidth: 1,
-    borderColor: '#404040',
-  },
-  signOutButtonText: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+
   deleteBackground: {
     position: 'absolute',
     top: 0,
@@ -1090,6 +1238,91 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  
+  // Group invitations styles
+  invitationsSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  invitationAlert: {
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#000000',
+  },
+  invitationAlertText: {
+    fontSize: 16,
+    color: '#000000',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  invitationItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F5F5F5',
+  },
+  invitationInfo: {
+    marginBottom: 16,
+  },
+  invitationGroupName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  invitationFromText: {
+    fontSize: 14,
+    color: '#404040',
+    marginBottom: 2,
+  },
+  invitationDateText: {
+    fontSize: 12,
+    color: '#808080',
+  },
+  invitationActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  declineButton: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  declineButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#404040',
+  },
+  acceptButton: {
+    flex: 1,
+    backgroundColor: '#000000',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  acceptButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
 })
 

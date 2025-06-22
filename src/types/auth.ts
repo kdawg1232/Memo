@@ -6,6 +6,7 @@ export interface UserProfile {
   first_name: string
   last_name: string
   username: string
+  profile_picture_url?: string | null
   created_at: string
   updated_at: string
 }
@@ -40,6 +41,7 @@ export interface AuthHook {
   signInWithEmail: (emailOrUsername: string, password: string) => Promise<AuthResponse>
   signUpWithEmail: (signupData: SignupData) => Promise<AuthResponse>
   signOut: () => Promise<{ error: AuthError | null }>
+  refreshUserProfile: () => Promise<void>
 }
 
 // Auth state enum for better state management

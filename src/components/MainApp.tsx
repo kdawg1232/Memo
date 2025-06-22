@@ -3,9 +3,11 @@ import { View, StyleSheet, TouchableOpacity, Text, Animated, Dimensions } from '
 import MapScreen from '../screens/MapScreen'
 import FriendsScreen from '../screens/FriendsScreen'
 import ProfileScreen from '../screens/ProfileScreen'
+import SettingsScreen from '../screens/SettingsScreen'
+import CreateGroupScreen from '../screens/CreateGroupScreen'
 import { MapIcon, ProfileIcon, FriendsIcon } from './Icons'
 
-type ScreenType = 'map' | 'friends' | 'profile'
+type ScreenType = 'map' | 'friends' | 'profile' | 'settings' | 'createGroup'
 
 const { width } = Dimensions.get('window')
 
@@ -13,6 +15,7 @@ const MainApp: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('map')
   const [shouldCenterOnUser, setShouldCenterOnUser] = useState<boolean>(false)
   const [mapRefreshTrigger, setMapRefreshTrigger] = useState<number>(0)
+  const [friendsRefreshTrigger, setFriendsRefreshTrigger] = useState<number>(0)
   
   // Animation values for screen transitions
   const slideAnim = useRef(new Animated.Value(0)).current
@@ -81,12 +84,25 @@ const MainApp: React.FC = () => {
 
   const handleNavigateToFriends = () => {
     console.log('👥 Animating to friends screen')
+    // Always trigger a refresh when navigating to friends screen to ensure fresh data
+    console.log('🔄 Navigating to friends, triggering refresh to load latest groups')
+    setFriendsRefreshTrigger(Date.now())
     animateToScreen('friends')
   }
 
   const handleNavigateToProfile = () => {
     console.log('👤 Animating to profile screen')
     animateToScreen('profile')
+  }
+
+  const handleNavigateToSettings = () => {
+    console.log('⚙️ Animating to settings screen')
+    animateToScreen('settings')
+  }
+
+  const handleNavigateToCreateGroup = () => {
+    console.log('🆕 Animating to create group screen')
+    animateToScreen('createGroup')
   }
 
   // Render the current screen
@@ -101,9 +117,13 @@ const MainApp: React.FC = () => {
           />
         )
       case 'friends':
-        return <FriendsScreen onNavigateBack={handleNavigateToMap} />
+        return <FriendsScreen onNavigateBack={handleNavigateToMap} onNavigateToCreateGroup={handleNavigateToCreateGroup} refreshTrigger={friendsRefreshTrigger} />
       case 'profile':
-        return <ProfileScreen onNavigateBack={handleNavigateToMap} />
+        return <ProfileScreen onNavigateBack={handleNavigateToMap} onNavigateToSettings={handleNavigateToSettings} />
+      case 'settings':
+        return <SettingsScreen onNavigateBack={handleNavigateToProfile} />
+      case 'createGroup':
+        return <CreateGroupScreen onNavigateBack={handleNavigateToFriends} />
       default:
         return (
           <MapScreen 

@@ -25,8 +25,80 @@ export interface User {
   first_name: string
   last_name: string
   username: string
+  profile_picture_url?: string | null
   created_at: string
   updated_at: string
+}
+
+// Groups database schema - represents user groups
+export interface Group {
+  id: string
+  name: string
+  description?: string
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+// Group members database schema - represents group membership
+export interface GroupMember {
+  id: string
+  group_id: string
+  user_id: string
+  status: 'pending' | 'accepted' | 'declined'
+  role: 'member' | 'admin' | 'owner'
+  invited_by?: string | null
+  joined_at: string
+  updated_at: string
+}
+
+// Extended type for group member with user details
+export interface GroupMemberWithUser extends GroupMember {
+  user: User
+  invited_by_user?: User | null
+}
+
+// Extended type for group with member information
+export interface GroupWithMembers extends Group {
+  members: GroupMemberWithUser[]
+  member_count: number
+  created_by_user: User
+}
+
+// Group invitation data for creating new memberships
+export interface GroupInvitationData {
+  group_id: string
+  user_id: string
+  role?: 'member' | 'admin' | 'owner'
+}
+
+// Type for creating a new group
+export interface CreateGroupData {
+  name: string
+  description?: string
+}
+
+// Type for updating a group
+export interface UpdateGroupData {
+  name?: string
+  description?: string
+}
+
+// Type for searching users to invite
+export interface UserSearchResult {
+  id: string
+  username: string
+  first_name: string
+  last_name: string
+  profile_picture_url?: string | null
+}
+
+// Type for pending group invitations (to display in profile)
+export interface PendingGroupInvitation {
+  id: string
+  group: Group
+  invited_by_user: User
+  joined_at: string
 }
 
 // Type for creating a new pin (without auto-generated fields)
@@ -110,4 +182,5 @@ export interface UpdateUserData {
   first_name?: string
   last_name?: string
   username?: string
+  profile_picture_url?: string | null
 } 

@@ -292,6 +292,13 @@ export function useAuth(): AuthHook {
     }
   }
 
+  // Function to refresh user profile (useful after profile updates)
+  const refreshUserProfile = async (): Promise<void> => {
+    if (user?.id) {
+      await fetchUserProfile(user.id)
+    }
+  }
+
   return {
     user,
     userProfile,
@@ -299,5 +306,6 @@ export function useAuth(): AuthHook {
     signInWithEmail,
     signUpWithEmail,
     signOut,
+    refreshUserProfile,
   }
 } 
