@@ -15,7 +15,10 @@ import {
   UpdateGroupData,
   GroupInvitationData,
   UserSearchResult,
-  PendingGroupInvitation
+  PendingGroupInvitation,
+  GroupPin,
+  GroupPinWithDetails,
+  AddPinToGroupsData
 } from '../types/database'
 
 // Re-export types for convenience so components can import from services/database
@@ -30,7 +33,10 @@ export type {
   UpdateGroupData,
   GroupInvitationData,
   UserSearchResult,
-  PendingGroupInvitation
+  PendingGroupInvitation,
+  GroupPin,
+  GroupPinWithDetails,
+  AddPinToGroupsData
 } from '../types/database'
 
 // Database service for managing audio pins and user profiles
@@ -916,6 +922,156 @@ export class DatabaseService {
       return { error: null }
     } catch (error) {
       console.error('❌ DatabaseService: Exception removing group member:', error)
+      return { error }
+    }
+  }
+
+  // ===== GROUP PINS OPERATIONS =====
+
+  /**
+   * Add a pin to multiple groups
+   * @param pinId - The ID of the pin to add
+   * @param groupIds - Array of group IDs to add the pin to
+   * @param userId - The ID of the user adding the pin
+   * @returns Promise with success/error status
+   */
+  static async addPinToGroups(pinId: string, groupIds: string[], userId: string): Promise<{ data: GroupPin[] | null; error: any }> {
+    try {
+      console.log(`📌 DatabaseService: Adding pin ${pinId} to ${groupIds.length} groups`)
+      
+      // Create group_pins records for each group
+      const groupPinsData = groupIds.map(groupId => ({
+        group_id: groupId,
+        pin_id: pinId,
+        added_by_user_id: userId
+      }))
+
+      const { data, error } = await supabase
+        .from('group_pins')
+        .insert(groupPinsData)
+        .select()
+
+      if (error) {
+        console.error('❌ DatabaseService: Error adding pin to groups:', error.message)
+        return { data: null, error }
+      }
+
+      console.log(`✅ DatabaseService: Pin added to ${data?.length || 0} groups successfully`)
+      return { data, error: null }
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception adding pin to groups:', error)
+      return { data: null, error }
+    }
+  }
+
+  /**
+   * Get all pins for a specific group
+   * @param groupId - The ID of the group to get pins for
+   * @returns Promise with array of group pins with details
+   */
+  static async getGroupPins(groupId: string): Promise<{ data: GroupPinWithDetails[] | null; error: any }> {
+    try {
+      console.log('🔍 DatabaseService: Getting pins for group:', groupId)
+      
+      // First, get the group_pins with pin data
+      const { data: groupPinsData, error: groupPinsError } = await supabase
+        .from('group_pins')
+        .select(`
+          *,
+          pin:pins(*)
+        `)
+        .eq('group_id', groupId)
+        .order('added_at', { ascending: false })
+
+      if (groupPinsError) {
+        console.error('❌ DatabaseService: Error fetching group pins:', groupPinsError.message)
+        return { data: null, error: groupPinsError }
+      }
+
+      if (!groupPinsData || groupPinsData.length === 0) {
+        console.log('✅ DatabaseService: No pins found for group')
+        return { data: [], error: null }
+      }
+
+      // Get unique user IDs from the group pins
+      const userIds = [...new Set(groupPinsData.map(gp => gp.added_by_user_id))]
+      
+      // Fetch user data for all users who added pins
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .in('id', userIds)
+
+      if (usersError) {
+        console.error('❌ DatabaseService: Error fetching user data:', usersError.message)
+        // Continue without user data rather than failing completely
+      }
+
+      // Create a user lookup map
+      const userMap = new Map(usersData?.map(user => [user.id, user]) || [])
+
+      // Combine the data manually
+      const groupPinsWithDetails = groupPinsData.map(groupPin => ({
+        ...groupPin,
+        user: userMap.get(groupPin.added_by_user_id) || {
+          id: groupPin.added_by_user_id,
+          first_name: 'Unknown',
+          last_name: 'User',
+          username: 'unknown',
+          profile_picture_url: null
+        }
+      }))
+
+      console.log(`✅ DatabaseService: Found ${groupPinsWithDetails.length} pins for group`)
+      return { data: groupPinsWithDetails, error: null }
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception fetching group pins:', error)
+      return { data: null, error }
+    }
+  }
+
+  /**
+   * Get user's groups for pin sharing (only active memberships)
+   * @param userId - The ID of the user to get groups for
+   * @returns Promise with array of groups the user can share to
+   */
+  static async getUserGroupsForPinSharing(userId: string): Promise<{ data: GroupWithMembers[] | null; error: any }> {
+    try {
+      console.log('🔍 DatabaseService: Getting user groups for pin sharing:', userId)
+      
+      // Use the existing getUserGroups method since it already filters for active memberships
+      return await this.getUserGroups(userId)
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception getting user groups for pin sharing:', error)
+      return { data: null, error }
+    }
+  }
+
+  /**
+   * Remove a pin from a group
+   * @param groupId - The ID of the group
+   * @param pinId - The ID of the pin to remove
+   * @returns Promise with success/error status
+   */
+  static async removeGroupPin(groupId: string, pinId: string): Promise<{ error: any }> {
+    try {
+      console.log(`🗑️ DatabaseService: Removing pin ${pinId} from group ${groupId}`)
+      
+      const { error } = await supabase
+        .from('group_pins')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('pin_id', pinId)
+
+      if (error) {
+        console.error('❌ DatabaseService: Error removing pin from group:', error.message)
+        return { error }
+      }
+
+      console.log('✅ DatabaseService: Pin removed from group successfully')
+      return { error: null }
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception removing pin from group:', error)
       return { error }
     }
   }

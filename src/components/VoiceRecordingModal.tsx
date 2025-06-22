@@ -14,7 +14,7 @@ import { useAudioRecorder, useAudioPlayer, RecordingPresets, AudioModule } from 
 interface VoiceRecordingModalProps {
   visible: boolean
   onClose: () => void
-  onSendRecording: (recordingUri: string, durationSeconds: number) => void
+  onAddRecording: (recordingUri: string, durationSeconds: number) => void
 }
 
 type RecordingState = 'idle' | 'recording' | 'stopped' | 'playing' | 'paused'
@@ -25,12 +25,12 @@ const MAX_RECORDING_DURATION = 30000 // 30 seconds in milliseconds
 const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
   visible,
   onClose,
-  onSendRecording,
+  onAddRecording,
 }) => {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle')
   const [recordingDuration, setRecordingDuration] = useState(0)
   const [recordingUri, setRecordingUri] = useState<string | null>(null)
-  
+
   // Audio recording setup - Use the working HIGH_QUALITY preset with small modifications
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY)
   const audioPlayer = useAudioPlayer()
@@ -274,25 +274,36 @@ const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
   const playRecording = async () => {
     if (recordingUri) {
       try {
-        // Configure audio mode for maximum playback volume
+        console.log('▶️ Attempting to play recording:', recordingUri)
+        
+        // Configure audio mode for playback
         await AudioModule.setAudioModeAsync({
           allowsRecording: false,
           playsInSilentMode: true,
           shouldPlayInBackground: false,
-          interruptionMode: 'doNotMix',
-          interruptionModeAndroid: 'doNotMix',
+          interruptionMode: 'duckOthers',
+          interruptionModeAndroid: 'duckOthers',
           shouldRouteThroughEarpiece: false,
         })
 
-        // Replace the audio source and play with maximum volume
+        // Replace the audio source and play
+        console.log('🔄 Replacing audio source...')
         audioPlayer.replace({ uri: recordingUri })
-        audioPlayer.volume = 1.0 // Maximum volume for louder playback
-        audioPlayer.play()
+        
+        console.log('🔊 Setting volume and starting playback...')
+        audioPlayer.volume = 1.0
+        await audioPlayer.play()
+        
+        console.log('✅ Audio playback started successfully')
         setRecordingState('playing')
       } catch (error) {
-        console.error('Error playing recording:', error)
-        Alert.alert('Error', 'Failed to play recording. Please try again.')
+        console.error('❌ Error playing recording:', error)
+        // Don't show alert for playback errors, just log them
+        // The user can still proceed to add the recording
+        console.log('ℹ️ Audio playback failed, but recording can still be added')
       }
+    } else {
+      console.error('❌ No recording URI to play')
     }
   }
 
@@ -302,47 +313,47 @@ const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
     setRecordingState('stopped')
   }
 
-  // Send recording
-  const sendRecording = async () => {
+  // Add recording
+  const addRecording = async () => {
+    console.log('🚀 addRecording called')
+    
     if (recordingUri) {
       try {
-        console.log('📤 Sending recording:', recordingUri)
+        console.log('📤 Preparing to add recording:', recordingUri)
         
-        // Final check of the file before sending
+        // Final check of the file
         const response = await fetch(recordingUri)
         const blob = await response.blob()
-        const durationSeconds = Math.floor(recordingDuration / 1000) // Convert ms to seconds
+        const durationSeconds = Math.floor(recordingDuration / 1000)
         
-        console.log('📤 Final file check before send:')
+        console.log('📤 Final file check:')
         console.log('  - Size:', blob.size, 'bytes')
         console.log('  - Type:', blob.type)
-        console.log('  - Duration:', recordingDuration, 'ms (', durationSeconds, 'seconds)')
+        console.log('  - Duration:', durationSeconds, 'seconds')
         
         if (blob.size === 0) {
-          console.error('❌ Cannot send empty recording file!')
-          Alert.alert('Send Error', 'The recording file is empty and cannot be sent.')
+          console.error('❌ Cannot add empty recording file!')
+          Alert.alert('Add Error', 'The recording file is empty and cannot be added.')
           return
         }
         
-        // Pass both recording URI and duration in seconds
-        onSendRecording(recordingUri, durationSeconds)
+        // Pass recording data to parent (which will handle group selection)
+        onAddRecording(recordingUri, durationSeconds)
+        
+        // Reset modal state
         resetModal()
-        onClose()
       } catch (error) {
-        console.error('❌ Error checking file before send:', error)
-        Alert.alert('Send Error', 'Unable to send the recording. Please try again.')
+        console.error('❌ Error checking file:', error)
+        Alert.alert('Add Error', 'Unable to prepare the recording. Please try again.')
       }
     } else {
-      console.error('❌ No recording URI to send')
-      Alert.alert('Send Error', 'No recording available to send.')
+      console.error('❌ No recording URI to add')
+      Alert.alert('Add Error', 'No recording available to add.')
     }
   }
 
   // Cancel recording
   const cancelRecording = () => {
-    if (recordingState === 'recording') {
-      stopRecording()
-    }
     resetModal()
     onClose()
   }
@@ -361,17 +372,30 @@ const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
     const totalSeconds = Math.floor(milliseconds / 1000)
     const minutes = Math.floor(totalSeconds / 60)
     const seconds = totalSeconds % 60
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
-  // Clean up on unmount
+  // Auto-start pulse animation when modal is visible
   useEffect(() => {
+    if (visible && recordingState === 'idle') {
+      startPulseAnimation()
+    }
+  }, [visible])
+
+  // Update duration every 100ms during recording
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null
+    
+    if (recordingState === 'recording') {
+      interval = setInterval(updateDuration, 100)
+    }
+    
     return () => {
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current)
+      if (interval) {
+        clearInterval(interval)
       }
     }
-  }, [])
+  }, [recordingState])
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -394,87 +418,87 @@ const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
             }
           ]}
         >
-          <Text style={styles.title}>Voice Memo</Text>
-          
-          {/* Progress Bar */}
-          <View style={styles.progressBarContainer}>
-            <Animated.View 
-              style={[
-                styles.progressBar,
-                {
-                  width: progressAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
-                },
-              ]} 
-            />
-          </View>
-          
-          {/* Timer */}
-          <Text style={styles.timer}>{formatDuration(recordingDuration)}</Text>
-          
-          {/* Main Action Button */}
-          <View style={styles.actionButtonContainer}>
-            {recordingState === 'idle' && (
-              <Animated.View style={{ transform: [{ scale: pulseAnimation }] }}>
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.recordButton]}
-                  onPress={startRecording}
-                >
-                  <View style={styles.recordButtonInner} />
-                </TouchableOpacity>
-              </Animated.View>
-            )}
-            
-            {recordingState === 'recording' && (
-              <Animated.View style={{ transform: [{ scale: pulseAnimation }] }}>
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.stopButton]}
-                  onPress={stopRecording}
-                >
-                  <View style={styles.stopButtonInner} />
-                </TouchableOpacity>
-              </Animated.View>
-            )}
-            
-            {(recordingState === 'stopped' || recordingState === 'paused') && (
+        <Text style={styles.title}>Voice Memo</Text>
+        
+        {/* Progress Bar */}
+        <View style={styles.progressBarContainer}>
+          <Animated.View 
+            style={[
+              styles.progressBar,
+              {
+                width: progressAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%'],
+                }),
+              },
+            ]} 
+          />
+        </View>
+        
+        {/* Timer */}
+        <Text style={styles.timer}>{formatDuration(recordingDuration)}</Text>
+        
+        {/* Main Action Button */}
+        <View style={styles.actionButtonContainer}>
+          {recordingState === 'idle' && (
+            <Animated.View style={{ transform: [{ scale: pulseAnimation }] }}>
               <TouchableOpacity
-                style={[styles.actionButton, styles.playButton]}
-                onPress={playRecording}
+                style={[styles.actionButton, styles.recordButton]}
+                onPress={startRecording}
               >
-                <Text style={styles.playButtonText}>▶</Text>
+                <View style={styles.recordButtonInner} />
               </TouchableOpacity>
-            )}
-            
-            {recordingState === 'playing' && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.pauseButton]}
-                onPress={pausePlayback}
-              >
-                <Text style={styles.pauseButtonText}>⏸</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+            </Animated.View>
+          )}
           
-          {/* Control Buttons */}
-          <View style={styles.controlButtons}>
+          {recordingState === 'recording' && (
+            <Animated.View style={{ transform: [{ scale: pulseAnimation }] }}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.stopButton]}
+                onPress={stopRecording}
+              >
+                <View style={styles.stopButtonInner} />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+          
+          {(recordingState === 'stopped' || recordingState === 'paused') && (
             <TouchableOpacity
-              style={[styles.controlButton, styles.cancelButton]}
-              onPress={cancelRecording}
+              style={[styles.actionButton, styles.playButton]}
+              onPress={playRecording}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.playButtonText}>▶</Text>
             </TouchableOpacity>
-            
-            {(recordingState === 'stopped' || recordingState === 'playing' || recordingState === 'paused') && (
-              <TouchableOpacity
-                style={[styles.controlButton, styles.sendButton]}
-                onPress={sendRecording}
-              >
-                <Text style={styles.sendButtonText}>Send</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          )}
+          
+          {recordingState === 'playing' && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.pauseButton]}
+              onPress={pausePlayback}
+            >
+              <Text style={styles.pauseButtonText}>⏸</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        
+        {/* Control Buttons */}
+        <View style={styles.controlButtons}>
+          <TouchableOpacity
+            style={[styles.controlButton, styles.cancelButton]}
+            onPress={cancelRecording}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+          
+          {(recordingState === 'stopped' || recordingState === 'playing' || recordingState === 'paused') && (
+            <TouchableOpacity
+              style={[styles.controlButton, styles.addButton]}
+              onPress={addRecording}
+            >
+              <Text style={styles.addButtonText}>Add</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -612,10 +636,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  sendButton: {
+  addButton: {
     backgroundColor: '#000000',
   },
-  sendButtonText: {
+  addButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',

@@ -101,6 +101,27 @@ export interface PendingGroupInvitation {
   joined_at: string
 }
 
+// Group pins database schema - represents pins shared to groups
+export interface GroupPin {
+  id: string
+  group_id: string
+  pin_id: string
+  added_by_user_id: string
+  added_at: string
+}
+
+// Extended type for group pin with pin and user details
+export interface GroupPinWithDetails extends GroupPin {
+  pin: Pin
+  added_by_user: User
+}
+
+// Type for adding pins to groups
+export interface AddPinToGroupsData {
+  pin_id: string
+  group_ids: string[]
+}
+
 // Type for creating a new pin (without auto-generated fields)
 export interface CreatePin {
   user_id: string

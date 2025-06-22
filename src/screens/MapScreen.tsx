@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import {
   View,
   StyleSheet,
@@ -14,12 +14,14 @@ import { MapRegion, DEFAULT_LATITUDE_DELTA, DEFAULT_LONGITUDE_DELTA } from '../t
 import { AudioIcon } from '../components/Icons'
 import VoiceRecordingModal from '../components/VoiceRecordingModal'
 import AudioPlaybackModal from '../components/AudioPlaybackModal'
+import GroupSelectionModal from '../components/GroupSelectionModal'
 import { 
   createAudioPin, 
   fetchAudioPins, 
   deleteAudioPin,
   AudioPin, 
-  CreateAudioPinData 
+  CreateAudioPinData,
+  DatabaseService 
 } from '../services/database'
 
 interface MapScreenProps {
@@ -53,6 +55,13 @@ const MapScreen: React.FC<MapScreenProps> = ({
   const [isLoadingPins, setIsLoadingPins] = useState<boolean>(false)
   const [isCreatingPin, setIsCreatingPin] = useState<boolean>(false)
   const mapViewRef = useRef<MapView>(null)
+
+  // New state for group selection flow
+  const [isGroupSelectionVisible, setIsGroupSelectionVisible] = useState(false)
+  const [pendingRecordingData, setPendingRecordingData] = useState<{
+    audioUri: string
+    durationSeconds: number
+  } | null>(null)
 
   // Update map region when location changes
   useEffect(() => {
@@ -177,17 +186,32 @@ const MapScreen: React.FC<MapScreenProps> = ({
     setIsRecordingModalVisible(false)
   }
 
-  // Handle recording send (create audio pin)
-  const handleRecordingSend = async (audioUri: string, durationSeconds: number) => {
-    if (!location) {
-      Alert.alert('Location Error', 'Unable to get your current location. Please try again.')
+  // Handle recording add - now shows group selection modal instead of directly creating pin
+  const handleRecordingAdd = async (audioUri: string, durationSeconds: number) => {
+    console.log('📤 Recording add initiated:', { audioUri, durationSeconds })
+    
+    // Store the recording data for later use
+    setPendingRecordingData({ audioUri, durationSeconds })
+    
+    // Close recording modal and show group selection
+    setIsRecordingModalVisible(false)
+    setIsGroupSelectionVisible(true)
+  }
+
+  // Handle group selection confirmation - actually creates the pin
+  const handleGroupSelectionConfirm = async (selectedGroupIds: string[]) => {
+    if (!pendingRecordingData || !location) {
+      Alert.alert('Error', 'Missing recording data or location. Please try again.')
       return
     }
 
+    const { audioUri, durationSeconds } = pendingRecordingData
+
     try {
       setIsCreatingPin(true)
-      console.log('📤 Recording sent - creating audio pin:', audioUri)
+      console.log('📤 Creating audio pin with groups:', audioUri)
       console.log('⏱️ Recording duration:', durationSeconds, 'seconds')
+      console.log('👥 Selected groups:', selectedGroupIds)
       
       // Validate the audio file first
       const response = await fetch(audioUri)
@@ -210,7 +234,7 @@ const MapScreen: React.FC<MapScreenProps> = ({
         lng: location.longitude,
         title: `Voice Memo`,
         description: `Recorded at ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
-        duration: durationSeconds, // Now we have the actual duration!
+        duration: durationSeconds,
         file_size: blob.size,
       }
 
@@ -219,24 +243,48 @@ const MapScreen: React.FC<MapScreenProps> = ({
 
       if (result.success && result.pin) {
         console.log('✅ Audio pin created successfully:', result.pin.id)
-        console.log('📍 Pin coordinates:', result.pin.lat, result.pin.lng)
-        console.log('⏱️ Pin duration:', result.pin.duration, 'seconds')
-        console.log('🔢 Current pins count:', audioPins.length)
+        
+        // Add pin to selected groups if any were chosen
+        if (selectedGroupIds.length > 0) {
+          console.log(`📌 Adding pin to ${selectedGroupIds.length} groups:`, selectedGroupIds)
+          try {
+            const { error: groupError } = await DatabaseService.addPinToGroups(
+              result.pin.id, 
+              selectedGroupIds, 
+              result.pin.user_id
+            )
+            
+            if (groupError) {
+              console.error('❌ Error adding pin to groups:', groupError)
+              Alert.alert('Warning', 'Pin was created but could not be added to some groups.')
+            } else {
+              console.log('✅ Pin successfully added to all selected groups')
+            }
+          } catch (error) {
+            console.error('❌ Exception adding pin to groups:', error)
+            Alert.alert('Warning', 'Pin was created but could not be added to groups.')
+          }
+        } else {
+          console.log('ℹ️ No groups selected - pin saved as personal only')
+        }
         
         // Add the new pin to our local state
         setAudioPins(prevPins => {
           const newPins = [result.pin!, ...prevPins]
           console.log('🔢 New pins count:', newPins.length)
-          console.log('📌 All pins:', newPins.map(p => ({ id: p.id, lat: p.lat, lng: p.lng, duration: p.duration })))
           return newPins
         })
         
         // Show success message
-        Alert.alert('Success', 'Your audio pin has been created!', [
-          { text: 'OK', onPress: () => console.log('Pin creation confirmed') }
-        ])
+        const successMessage = selectedGroupIds.length > 0 
+          ? `Your audio pin has been created and shared with ${selectedGroupIds.length} group${selectedGroupIds.length > 1 ? 's' : ''}!`
+          : 'Your personal audio pin has been created!'
         
-        setIsRecordingModalVisible(false)
+        Alert.alert('Success', successMessage)
+        
+        // Clean up
+        setIsGroupSelectionVisible(false)
+        setPendingRecordingData(null)
       } else {
         console.error('❌ Failed to create pin:', result.error)
         Alert.alert('Upload Failed', result.error || 'Unable to create audio pin. Please try again.')
@@ -247,6 +295,13 @@ const MapScreen: React.FC<MapScreenProps> = ({
     } finally {
       setIsCreatingPin(false)
     }
+  }
+
+  // Handle group selection cancellation
+  const handleGroupSelectionCancel = () => {
+    console.log('🚫 Group selection cancelled')
+    setIsGroupSelectionVisible(false)
+    setPendingRecordingData(null)
   }
 
   // Handle pin marker press (open playback modal)
@@ -433,7 +488,7 @@ const MapScreen: React.FC<MapScreenProps> = ({
       <VoiceRecordingModal
         visible={isRecordingModalVisible}
         onClose={handleRecordingModalClose}
-        onSendRecording={handleRecordingSend}
+        onAddRecording={handleRecordingAdd}
       />
 
       {/* Audio Playback Modal */}
@@ -443,6 +498,17 @@ const MapScreen: React.FC<MapScreenProps> = ({
         pin={selectedPin}
         onDelete={handlePinDelete}
       />
+
+      {/* Group Selection Modal */}
+      {isGroupSelectionVisible && pendingRecordingData && (
+        <GroupSelectionModal
+          visible={isGroupSelectionVisible}
+          onClose={handleGroupSelectionCancel}
+          onConfirm={handleGroupSelectionConfirm}
+          recordingUri={pendingRecordingData.audioUri}
+          durationSeconds={pendingRecordingData.durationSeconds}
+        />
+      )}
     </View>
   )
 }

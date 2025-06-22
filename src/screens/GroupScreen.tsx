@@ -10,15 +10,19 @@ import {
   Modal,
   TextInput
 } from 'react-native'
-import { DatabaseService, GroupWithMembers } from '../services/database'
+import { DatabaseService, GroupWithMembers, GroupPinWithDetails } from '../services/database'
 import { useAuth } from '../hooks/useAuth'
+import AudioPlaybackModal from '../components/AudioPlaybackModal'
+import { supabase } from '../services/supabase'
+import * as Location from 'expo-location'
 
 interface GroupScreenProps {
   groupId: string
   onNavigateBack: () => void
+  refreshTrigger?: number // Optional prop to trigger refresh
 }
 
-const GroupScreen: React.FC<GroupScreenProps> = ({ groupId, onNavigateBack }) => {
+const GroupScreen: React.FC<GroupScreenProps> = ({ groupId, onNavigateBack, refreshTrigger }) => {
   const { user } = useAuth()
   const [group, setGroup] = useState<GroupWithMembers | null>(null)
   const [loading, setLoading] = useState(true)
@@ -26,12 +30,58 @@ const GroupScreen: React.FC<GroupScreenProps> = ({ groupId, onNavigateBack }) =>
   const [inviteUsername, setInviteUsername] = useState('')
   const [inviting, setInviting] = useState(false)
 
+  // Group pins state
+  const [groupPins, setGroupPins] = useState<GroupPinWithDetails[]>([])
+  const [loadingPins, setLoadingPins] = useState(false)
+  const [selectedPin, setSelectedPin] = useState<GroupPinWithDetails | null>(null)
+  const [showAudioModal, setShowAudioModal] = useState(false)
+  const [pinLocations, setPinLocations] = useState<{[pinId: string]: {address: string, city: string}}>({})  
+
   // Load group details when component mounts
   useEffect(() => {
     if (user?.id) {
       loadGroupDetails()
     }
   }, [groupId, user?.id])
+
+  // Reload pins when refreshTrigger changes (e.g., after adding a pin)
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      console.log('🔄 Refresh trigger activated, reloading group pins...')
+      loadGroupPins()
+    }
+  }, [refreshTrigger])
+
+  // Set up real-time subscription for group pins changes
+  useEffect(() => {
+    if (!groupId) return
+
+    console.log('🔄 Setting up real-time subscription for group pins...')
+
+    // Subscribe to changes in group_pins table for this group
+    const groupPinsSubscription = supabase
+      .channel(`group_pins_${groupId}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'group_pins',
+          filter: `group_id=eq.${groupId}`
+        }, 
+        (payload) => {
+          console.log('📡 Group pins change detected:', payload)
+          console.log('🔄 Reloading group pins due to real-time update...')
+          loadGroupPins() // Reload pins when any pin changes in this group
+        }
+      )
+      .subscribe()
+
+    // Cleanup subscription on unmount
+    return () => {
+      console.log('🧹 Cleaning up group pins subscription')
+      groupPinsSubscription.unsubscribe()
+    }
+  }, [groupId])
 
   /**
    * Load detailed group information
@@ -56,6 +106,9 @@ const GroupScreen: React.FC<GroupScreenProps> = ({ groupId, onNavigateBack }) =>
       if (groupData) {
         setGroup(groupData)
         console.log(`✅ Loaded group details: ${groupData.name}`)
+        
+        // Also load group pins
+        await loadGroupPins()
       } else {
         Alert.alert('Error', 'Group not found')
       }
@@ -64,6 +117,95 @@ const GroupScreen: React.FC<GroupScreenProps> = ({ groupId, onNavigateBack }) =>
       Alert.alert('Error', 'Failed to load group details')
     } finally {
       setLoading(false)
+    }
+  }
+
+  /**
+   * Load group pins
+   */
+  const loadGroupPins = async () => {
+    try {
+      setLoadingPins(true)
+      console.log('🔍 Loading pins for group:', groupId)
+      
+      const { data: pinsData, error } = await DatabaseService.getGroupPins(groupId)
+      
+      if (error) {
+        console.error('❌ Error loading group pins:', error)
+        // Don't show alert for pins error, just log it
+        return
+      }
+
+      if (pinsData) {
+        setGroupPins(pinsData)
+        console.log(`✅ Loaded ${pinsData.length} pins for group`)
+        
+        // Fetch location names for all pins
+        console.log(`🗺️ Starting location fetching for ${pinsData.length} pins`)
+        pinsData.forEach((groupPin, index) => {
+          console.log(`📍 Processing pin ${index + 1}/${pinsData.length}: ${groupPin.pin.id}`)
+          getLocationName(groupPin.pin.lat, groupPin.pin.lng, groupPin.pin.id)
+        })
+      }
+    } catch (error) {
+      console.error('❌ Exception loading group pins:', error)
+    } finally {
+      setLoadingPins(false)
+    }
+  }
+
+  /**
+   * Get location name from coordinates using reverse geocoding
+   */
+  const getLocationName = async (lat: number, lng: number, pinId: string) => {
+    try {
+      console.log(`🗺️ Getting location for pin ${pinId}: lat=${lat}, lng=${lng}`)
+      
+      const result = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng })
+      console.log('📍 Reverse geocode result:', result)
+      
+      if (result && result.length > 0) {
+        const location = result[0]
+        
+        // Build address line (street number + street name, avoid duplicates)
+        const addressParts = []
+        if (location.streetNumber) addressParts.push(location.streetNumber)
+        if (location.street) {
+          addressParts.push(location.street)
+        } else if (location.name) {
+          // Only use name if we don't have a street
+          addressParts.push(location.name)
+        }
+        
+        // Build city/state line
+        const cityStateParts = []
+        if (location.city) cityStateParts.push(location.city)
+        if (location.region) cityStateParts.push(location.region)
+        
+        const address = addressParts.length > 0 ? addressParts.join(' ') : `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+        const city = cityStateParts.length > 0 ? cityStateParts.join(', ') : ''
+        
+        console.log(`✅ Location parsed - Address: "${address}", City: "${city}"`)
+        
+        setPinLocations(prev => ({
+          ...prev,
+          [pinId]: { address, city }
+        }))
+      } else {
+        console.log('⚠️ No location data returned')
+        const coords = `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+        setPinLocations(prev => ({
+          ...prev,
+          [pinId]: { address: coords, city: '' }
+        }))
+      }
+    } catch (error) {
+      console.error('❌ Error getting location name:', error)
+      const coords = `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+      setPinLocations(prev => ({
+        ...prev,
+        [pinId]: { address: coords, city: '' }
+      }))
     }
   }
 
@@ -205,6 +347,94 @@ const GroupScreen: React.FC<GroupScreenProps> = ({ groupId, onNavigateBack }) =>
   }
 
   /**
+   * Handle pin press for audio playback
+   */
+  const handlePinPress = (pin: GroupPinWithDetails) => {
+    console.log('🎵 Group pin pressed:', pin.pin.id)
+    setSelectedPin(pin)
+    setShowAudioModal(true)
+  }
+
+  /**
+   * Handle audio modal close
+   */
+  const handleAudioModalClose = () => {
+    console.log('❌ Audio modal closed')
+    setSelectedPin(null)
+    setShowAudioModal(false)
+  }
+
+  /**
+   * Handle pin deletion (only for pin creator or group admin/owner)
+   */
+  const handlePinDelete = async (pin: GroupPinWithDetails) => {
+    if (!user?.id) return
+
+    try {
+      console.log('🗑️ Deleting group pin:', pin.pin.id)
+      
+      const { error } = await DatabaseService.removeGroupPin(groupId, pin.pin.id)
+      
+      if (error) {
+        console.error('❌ Error deleting group pin:', error)
+        Alert.alert('Error', 'Failed to delete pin')
+        return
+      }
+
+      // Remove pin from local state
+      setGroupPins(prevPins => prevPins.filter(p => p.pin.id !== pin.pin.id))
+      
+      console.log('✅ Group pin deleted successfully')
+      Alert.alert('Success', 'Pin removed from group')
+    } catch (error) {
+      console.error('❌ Exception deleting group pin:', error)
+      Alert.alert('Error', 'Failed to delete pin')
+    }
+  }
+
+  /**
+   * Check if user can delete a pin (pin creator, group admin, or group owner)
+   */
+  const canDeletePin = (pin: GroupPinWithDetails) => {
+    if (!user?.id || !group) return false
+    
+    // Pin creator can delete their own pin
+    if (pin.added_by === user.id) return true
+    
+    // Group owner can delete any pin
+    if (group.created_by === user.id) return true
+    
+    // Group admin can delete any pin
+    const userMembership = group.members.find(member => member.user_id === user.id)
+    return userMembership?.role === 'admin' || userMembership?.role === 'owner'
+  }
+
+  /**
+   * Format pin creation date
+   */
+  const formatPinDate = (dateString: string): string => {
+    try {
+      const date = new Date(dateString)
+      const now = new Date()
+      const diffMs = now.getTime() - date.getTime()
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+      const diffDays = Math.floor(diffHours / 24)
+
+      if (diffHours < 1) {
+        return 'Just now'
+      } else if (diffHours < 24) {
+        return `${diffHours}h ago`
+      } else if (diffDays < 7) {
+        return `${diffDays}d ago`
+      } else {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      }
+    } catch (error) {
+      return 'Unknown'
+    }
+  }
+
+  /**
    * Render member item
    */
   const renderMember = (member: any, index: number) => (
@@ -324,6 +554,80 @@ const GroupScreen: React.FC<GroupScreenProps> = ({ groupId, onNavigateBack }) =>
               </View>
             )}
           </View>
+
+          {/* Group Pins Section */}
+          <View style={styles.pinsSection}>
+            <View style={styles.pinsSectionHeader}>
+              <Text style={styles.sectionTitle}>Shared Audio Pins ({groupPins.length})</Text>
+            </View>
+            
+            {loadingPins ? (
+              <View style={styles.loadingPinsContainer}>
+                <ActivityIndicator size="small" color="#000000" />
+                <Text style={styles.loadingPinsText}>Loading pins...</Text>
+              </View>
+            ) : groupPins.length > 0 ? (
+              <View style={styles.pinsList}>
+                {groupPins.map((groupPin, index) => {
+                  const location = pinLocations[groupPin.pin.id]
+                  return (
+                    <TouchableOpacity
+                      key={groupPin.pin.id}
+                      style={styles.pinItem}
+                      onPress={() => handlePinPress(groupPin)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.pinContent}>
+                        <View style={styles.pinMainInfo}>
+                          <Text style={styles.pinLocationName}>
+                            {location?.address || 'Loading address...'}
+                          </Text>
+                          <Text style={styles.pinLocationSubtitle}>
+                            {location?.city || 'Loading city...'}
+                          </Text>
+                          <View style={styles.pinMetadata}>
+                            <Text style={styles.pinTimestamp}>
+                              {formatPinDate(groupPin.pin.created_at)} • {Math.floor(groupPin.pin.duration / 60)}:{(groupPin.pin.duration % 60).toString().padStart(2, '0')}
+                            </Text>
+                          </View>
+                          <Text style={styles.pinSharedBy}>
+                            Shared by {groupPin.user.first_name} {groupPin.user.last_name}
+                          </Text>
+                        </View>
+                        
+                        <View style={styles.pinActions}>
+                          <TouchableOpacity
+                            style={styles.playButton}
+                            onPress={() => handlePinPress(groupPin)}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          >
+                            <Text style={styles.playButtonIcon}>▶</Text>
+                          </TouchableOpacity>
+                          
+                          {canDeletePin(groupPin) && (
+                            <TouchableOpacity
+                              style={styles.deleteButton}
+                              onPress={() => handlePinDelete(groupPin)}
+                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                              <Text style={styles.deleteButtonText}>🗑️</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+            ) : (
+              <View style={styles.emptyPinsState}>
+                <Text style={styles.emptyPinsTitle}>No audio pins yet</Text>
+                <Text style={styles.emptyPinsDescription}>
+                  Group members can share voice memos here by recording them on the map and selecting this group.
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
 
@@ -371,6 +675,32 @@ const GroupScreen: React.FC<GroupScreenProps> = ({ groupId, onNavigateBack }) =>
           </View>
         </View>
       </Modal>
+
+      {/* Audio Playback Modal */}
+      {selectedPin && (
+        <AudioPlaybackModal
+          visible={showAudioModal}
+          audioPin={{
+            id: selectedPin.pin.id,
+            user_id: selectedPin.pin.user_id,
+            lat: selectedPin.pin.lat,
+            lng: selectedPin.pin.lng,
+            audio_url: selectedPin.pin.audio_url,
+            title: selectedPin.pin.title,
+            description: selectedPin.pin.description,
+            duration: selectedPin.pin.duration,
+            file_size: selectedPin.pin.file_size,
+            created_at: selectedPin.pin.created_at,
+            updated_at: selectedPin.pin.updated_at
+          }}
+          onClose={handleAudioModalClose}
+          onDelete={() => {
+            handlePinDelete(selectedPin)
+            handleAudioModalClose()
+          }}
+          canDelete={canDeletePin(selectedPin)}
+        />
+      )}
     </View>
   )
 }
@@ -629,6 +959,113 @@ const styles = StyleSheet.create({
   modalHint: {
     fontSize: 14,
     color: '#808080',
+    lineHeight: 20,
+  },
+  pinsSection: {
+    marginBottom: 20,
+  },
+  pinsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  loadingPinsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingPinsText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#808080',
+  },
+  pinsList: {
+    gap: 12,
+  },
+  pinItem: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pinContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pinMainInfo: {
+    flex: 1,
+  },
+  pinLocationName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  pinLocationSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 8,
+  },
+  pinMetadata: {
+    marginBottom: 4,
+  },
+  pinTimestamp: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  pinSharedBy: {
+    fontSize: 12,
+    color: '#888888',
+    fontStyle: 'italic',
+  },
+  pinActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  playButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playButtonIcon: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 2,
+  },
+  deleteButton: {
+    padding: 8,
+  },
+  deleteButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  emptyPinsState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyPinsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  emptyPinsDescription: {
+    fontSize: 14,
+    color: '#808080',
+    textAlign: 'center',
     lineHeight: 20,
   },
 })
