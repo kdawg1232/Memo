@@ -1,140 +1,311 @@
 import { supabase } from './supabase'
-import { Pin, CreatePin, UpdatePin, NearbyPinsQuery, DatabaseResponse } from '../types/database'
+import { 
+  Pin, 
+  CreatePinData, 
+  User, 
+  CreateUserData, 
+  UpdateUserData,
+  AudioPin,
+  CreateAudioPinData
+} from '../types/database'
 
-// Auth types
-export interface User {
-  id: string
-  email: string
-  name?: string
-  avatar_url?: string
-}
+// Re-export types for convenience so components can import from services/database
+export type { AudioPin, CreateAudioPinData } from '../types/database'
 
-// Audio pin types
-export interface AudioPin {
-  id: string
-  user_id: string
-  lat: number
-  lng: number
-  audio_url: string
-  title?: string
-  description?: string
-  duration?: number // Duration in seconds
-  file_size?: number // File size in bytes
-  created_at: string
-  updated_at: string
-}
-
-export interface CreateAudioPinData {
-  lat: number
-  lng: number
-  title?: string
-  description?: string
-  duration?: number
-  file_size?: number
-}
-
-export interface AudioUploadResult {
-  success: boolean
-  audioUrl?: string
-  error?: string
-}
-
-export interface CreatePinResult {
-  success: boolean
-  pin?: AudioPin
-  error?: string
-}
-
+// Database service for managing audio pins and user profiles
 export class DatabaseService {
+  // ===== USER PROFILE OPERATIONS =====
   
   /**
-   * Create a new pin in the database
-   * @param pin Pin data to create
-   * @returns Promise with the created pin or error
+   * Get user profile by user ID
+   * @param userId - The user ID to get profile for
+   * @returns Promise with user profile or error
    */
-  static async createPin(pin: CreatePin): Promise<DatabaseResponse<Pin>> {
+  static async getUserProfile(userId: string): Promise<{ data: User | null; error: any }> {
     try {
+      console.log('🔍 DatabaseService: Getting user profile for:', userId)
+      
       const { data, error } = await supabase
-        .from('pins')
-        .insert([pin])
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('❌ DatabaseService: Error fetching user profile:', error.message)
+        return { data: null, error }
+      }
+
+      console.log('✅ DatabaseService: User profile found:', data?.username)
+      return { data, error: null }
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception fetching user profile:', error)
+      return { data: null, error }
+    }
+  }
+
+  /**
+   * Check if username is available
+   * @param username - The username to check (will be converted to lowercase)
+   * @param excludeUserId - Optional user ID to exclude from check (for updates)
+   * @returns Promise with boolean indicating availability
+   */
+  static async isUsernameAvailable(username: string, excludeUserId?: string): Promise<{ available: boolean; error: any }> {
+    try {
+      const cleanUsername = username.toLowerCase().trim()
+      console.log('🔍 DatabaseService: Checking username availability for:', cleanUsername)
+      
+      let query = supabase
+        .from('users')
+        .select('id')
+        .eq('username', cleanUsername)
+
+      if (excludeUserId) {
+        query = query.neq('id', excludeUserId)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('❌ DatabaseService: Error checking username:', error.message)
+        return { available: false, error }
+      }
+
+      const isAvailable = data.length === 0
+      console.log(`${isAvailable ? '✅' : '❌'} DatabaseService: Username "${cleanUsername}" ${isAvailable ? 'available' : 'taken'}`)
+      
+      return { available: isAvailable, error: null }
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception checking username:', error)
+      return { available: false, error }
+    }
+  }
+
+  /**
+   * Update user profile
+   * @param userId - The user ID to update
+   * @param updateData - The fields to update
+   * @returns Promise with updated user profile or error
+   */
+  static async updateUserProfile(userId: string, updateData: UpdateUserData): Promise<{ data: User | null; error: any }> {
+    try {
+      console.log('📝 DatabaseService: Updating user profile for:', userId)
+      
+      const { data, error } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', userId)
         .select()
         .single()
 
       if (error) {
-        console.error('Error creating pin:', error)
-        return { data: null, error: new Error(error.message) }
+        console.error('❌ DatabaseService: Error updating user profile:', error.message)
+        return { data: null, error }
       }
 
+      console.log('✅ DatabaseService: User profile updated successfully')
       return { data, error: null }
     } catch (error) {
-      console.error('Unexpected error creating pin:', error)
-      return { data: null, error: error as Error }
+      console.error('❌ DatabaseService: Exception updating user profile:', error)
+      return { data: null, error }
     }
   }
 
   /**
-   * Get all pins near a specific location
-   * @param query Location and radius parameters
-   * @returns Promise with nearby pins or error
+   * Search users by username (for friends feature)
+   * @param searchTerm - The search term to look for
+   * @param limit - Maximum number of results to return
+   * @returns Promise with array of matching users
    */
-  static async getNearbyPins(query: NearbyPinsQuery): Promise<DatabaseResponse<Pin[]>> {
+  static async searchUsersByUsername(searchTerm: string, limit: number = 10): Promise<{ data: User[] | null; error: any }> {
     try {
-      // Using Supabase's PostGIS functions for location queries
-      // This queries pins within the specified radius (in meters)
+      console.log('🔍 DatabaseService: Searching users with term:', searchTerm)
+      
       const { data, error } = await supabase
-        .from('pins')
+        .from('users')
         .select('*')
-        .gte('lat', query.lat - (query.radius / 111320)) // Rough conversion: 1 degree ≈ 111,320 meters
-        .lte('lat', query.lat + (query.radius / 111320))
-        .gte('lng', query.lng - (query.radius / (111320 * Math.cos(query.lat * Math.PI / 180))))
-        .lte('lng', query.lng + (query.radius / (111320 * Math.cos(query.lat * Math.PI / 180))))
-        .order('created_at', { ascending: false })
-        .limit(query.limit || 50)
+        .ilike('username', `%${searchTerm.toLowerCase()}%`)
+        .limit(limit)
+        .order('username')
 
       if (error) {
-        console.error('Error fetching nearby pins:', error)
-        return { data: null, error: new Error(error.message) }
+        console.error('❌ DatabaseService: Error searching users:', error.message)
+        return { data: null, error }
       }
 
-      return { data: data || [], error: null }
+      console.log(`✅ DatabaseService: Found ${data?.length || 0} users matching "${searchTerm}"`)
+      return { data, error: null }
     } catch (error) {
-      console.error('Unexpected error fetching nearby pins:', error)
-      return { data: null, error: error as Error }
+      console.error('❌ DatabaseService: Exception searching users:', error)
+      return { data: null, error }
     }
   }
 
   /**
-   * Get a specific pin by ID
-   * @param id Pin ID
-   * @returns Promise with the pin or error
+   * Get user by username to find their email for login
+   * @param username - The username to look up
+   * @returns Promise with user data or error
    */
-  static async getPinById(id: string): Promise<DatabaseResponse<Pin>> {
+  static async getUserByUsername(username: string): Promise<{ data: User | null; error: any }> {
     try {
+      const cleanUsername = username.toLowerCase().trim()
+      console.log('🔍 DatabaseService: Looking up user by username:', cleanUsername)
+      
       const { data, error } = await supabase
-        .from('pins')
+        .from('users')
         .select('*')
-        .eq('id', id)
+        .eq('username', cleanUsername)
         .single()
 
       if (error) {
-        console.error('Error fetching pin by ID:', error)
-        return { data: null, error: new Error(error.message) }
+        console.error('❌ DatabaseService: Error finding user by username:', error.message)
+        return { data: null, error }
       }
 
+      if (!data) {
+        console.log('🚫 DatabaseService: No user found with username:', cleanUsername)
+        return { data: null, error: new Error('User not found') }
+      }
+
+      console.log('✅ DatabaseService: Found user by username:', data.username)
       return { data, error: null }
     } catch (error) {
-      console.error('Unexpected error fetching pin by ID:', error)
-      return { data: null, error: error as Error }
+      console.error('❌ DatabaseService: Exception finding user by username:', error)
+      return { data: null, error }
+    }
+  }
+
+  /**
+   * Get email address by username for authentication
+   * This requires querying the auth.users table using the user ID from our users table
+   * @param username - The username to look up
+   * @returns Promise with email address or error
+   */
+  static async getEmailByUsername(username: string): Promise<{ email: string | null; error: any }> {
+    try {
+      const cleanUsername = username.toLowerCase().trim()
+      console.log('🔍 DatabaseService: Getting email for username:', cleanUsername)
+      
+      // First get the user from our users table
+      const { data: userProfile, error: profileError } = await DatabaseService.getUserByUsername(cleanUsername)
+      
+      if (profileError || !userProfile) {
+        console.log('❌ DatabaseService: Username not found:', cleanUsername)
+        return { email: null, error: profileError || new Error('Username not found') }
+      }
+
+      // Now we need to get the email from auth.users
+      // Since we can't directly query auth.users from the client, we'll use a workaround
+      // We'll create a database function to handle this
+      const { data, error } = await supabase.rpc('get_user_email_by_id', {
+        user_id: userProfile.id
+      })
+
+      if (error) {
+        console.error('❌ DatabaseService: Error getting email by user ID:', error.message)
+        // Fallback: return an error that suggests using email
+        return { 
+          email: null, 
+          error: new Error('Unable to authenticate with username. Please use your email address to sign in.') 
+        }
+      }
+
+      console.log('✅ DatabaseService: Found email for username')
+      return { email: data, error: null }
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception getting email by username:', error)
+      return { 
+        email: null, 
+        error: new Error('Unable to authenticate with username. Please use your email address to sign in.') 
+      }
+    }
+  }
+
+  // ===== PIN OPERATIONS =====
+  
+  /**
+   * Create a new audio pin in the database
+   * @param pinData - The pin data to create
+   * @returns Promise with the created pin or error
+   */
+  static async createPin(pinData: CreatePinData): Promise<{ data: Pin | null; error: any }> {
+    try {
+      console.log('📍 DatabaseService: Creating new pin at:', pinData.lat, pinData.lng)
+      
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('❌ DatabaseService: No authenticated user')
+        return { data: null, error: new Error('No authenticated user') }
+      }
+
+      const { data, error } = await supabase
+        .from('pins')
+        .insert([{
+          user_id: user.id,
+          ...pinData
+        }])
+        .select()
+        .single()
+
+      if (error) {
+        console.error('❌ DatabaseService: Error creating pin:', error.message)
+        return { data: null, error }
+      }
+
+      console.log('✅ DatabaseService: Pin created successfully:', data.id)
+      return { data, error: null }
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception creating pin:', error)
+      return { data: null, error }
+    }
+  }
+
+  /**
+   * Get pins near a specific location
+   * @param lat - Latitude center point
+   * @param lng - Longitude center point  
+   * @param radius - Search radius in degrees (approximately 0.01 = ~1km)
+   * @returns Promise with array of nearby pins
+   */
+  static async getNearbyPins(
+    lat: number, 
+    lng: number, 
+    radius: number = 0.01
+  ): Promise<{ data: Pin[] | null; error: any }> {
+    try {
+      console.log(`🔍 DatabaseService: Getting pins near ${lat}, ${lng} within ${radius} radius`)
+      
+      const { data, error } = await supabase
+        .from('pins')
+        .select('*')
+        .gte('lat', lat - radius)
+        .lte('lat', lat + radius)
+        .gte('lng', lng - radius)
+        .lte('lng', lng + radius)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('❌ DatabaseService: Error fetching nearby pins:', error.message)
+        return { data: null, error }
+      }
+
+      console.log(`✅ DatabaseService: Found ${data?.length || 0} nearby pins`)
+      return { data, error: null }
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception fetching nearby pins:', error)
+      return { data: null, error }
     }
   }
 
   /**
    * Get all pins created by a specific user
-   * @param userId User ID
-   * @returns Promise with user's pins or error
+   * @param userId - The user ID to get pins for
+   * @returns Promise with array of user's pins
    */
-  static async getUserPins(userId: string): Promise<DatabaseResponse<Pin[]>> {
+  static async getUserPins(userId: string): Promise<{ data: Pin[] | null; error: any }> {
     try {
+      console.log('🔍 DatabaseService: Getting pins for user:', userId)
+      
       const { data, error } = await supabase
         .from('pins')
         .select('*')
@@ -142,499 +313,203 @@ export class DatabaseService {
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching user pins:', error)
-        return { data: null, error: new Error(error.message) }
+        console.error('❌ DatabaseService: Error fetching user pins:', error.message)
+        return { data: null, error }
       }
 
-      return { data: data || [], error: null }
-    } catch (error) {
-      console.error('Unexpected error fetching user pins:', error)
-      return { data: null, error: error as Error }
-    }
-  }
-
-  /**
-   * Update an existing pin
-   * @param pin Pin update data
-   * @returns Promise with the updated pin or error
-   */
-  static async updatePin(pin: UpdatePin): Promise<DatabaseResponse<Pin>> {
-    try {
-      const { data, error } = await supabase
-        .from('pins')
-        .update(pin)
-        .eq('id', pin.id)
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Error updating pin:', error)
-        return { data: null, error: new Error(error.message) }
-      }
-
+      console.log(`✅ DatabaseService: Found ${data?.length || 0} pins for user`)
       return { data, error: null }
     } catch (error) {
-      console.error('Unexpected error updating pin:', error)
-      return { data: null, error: error as Error }
+      console.error('❌ DatabaseService: Exception fetching user pins:', error)
+      return { data: null, error }
     }
   }
 
   /**
-   * Delete a pin by ID
-   * @param id Pin ID
-   * @returns Promise with success status or error
+   * Delete a pin
+   * @param pinId - The ID of the pin to delete
+   * @returns Promise with error if any
    */
-  static async deletePin(id: string): Promise<DatabaseResponse<boolean>> {
+  static async deletePin(pinId: string): Promise<{ error: any }> {
     try {
+      console.log('🗑️ DatabaseService: Deleting pin:', pinId)
+      
       const { error } = await supabase
         .from('pins')
         .delete()
-        .eq('id', id)
+        .eq('id', pinId)
 
       if (error) {
-        console.error('Error deleting pin:', error)
-        return { data: null, error: new Error(error.message) }
+        console.error('❌ DatabaseService: Error deleting pin:', error.message)
+        return { error }
       }
 
-      return { data: true, error: null }
+      console.log('✅ DatabaseService: Pin deleted successfully')
+      return { error: null }
     } catch (error) {
-      console.error('Unexpected error deleting pin:', error)
-      return { data: null, error: error as Error }
+      console.error('❌ DatabaseService: Exception deleting pin:', error)
+      return { error }
     }
   }
 }
 
-// ==========================================
-// AUTH METHODS
-// ==========================================
+// ===== LEGACY FUNCTIONS FOR BACKWARD COMPATIBILITY =====
+// These functions maintain the existing API while using the new class-based service
 
-export const signUp = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-  try {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: true }
-  } catch (error) {
-    return { success: false, error: 'An unexpected error occurred' }
-  }
-}
-
-export const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-  try {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: true }
-  } catch (error) {
-    return { success: false, error: 'An unexpected error occurred' }
-  }
-}
-
-export const signOut = async (): Promise<{ success: boolean; error?: string }> => {
-  try {
-    const { error } = await supabase.auth.signOut()
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: true }
-  } catch (error) {
-    return { success: false, error: 'An unexpected error occurred' }
-  }
-}
-
-export const getCurrentUser = async (): Promise<User | null> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) return null
-
-    return {
-      id: user.id,
-      email: user.email || '',
-      name: user.user_metadata?.name,
-      avatar_url: user.user_metadata?.avatar_url,
-    }
-  } catch (error) {
-    console.error('Error getting current user:', error)
-    return null
-  }
-}
-
-// ==========================================
-// AUDIO STORAGE METHODS
-// ==========================================
-
-/**
- * Upload audio file to Supabase storage
- * Files are stored in: audio/{user_id}/{timestamp}-{filename}
- */
 export const uploadAudioFile = async (
   audioUri: string,
   filename?: string
-): Promise<AudioUploadResult> => {
+): Promise<{ success: boolean; audioUrl?: string; error?: string }> => {
   try {
-    console.log('🔄 Starting audio upload to Supabase storage...')
+    console.log('📤 Uploading audio file:', filename || 'unnamed')
     
-    // Get current user
-    const user = await getCurrentUser()
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return { success: false, error: 'User not authenticated' }
+      return { success: false, error: 'No authenticated user' }
     }
 
     // Generate filename if not provided
-    const timestamp = Date.now()
-    const audioFilename = filename || `recording-${timestamp}.m4a`
+    const audioFilename = filename || `${Date.now()}.m4a`
     const filePath = `${user.id}/${audioFilename}`
 
-    // Read the audio file properly for React Native
-    console.log('📥 Reading audio file from URI:', audioUri)
-    
-    // For React Native, we need to handle the file URI differently
-    let fileData: any
-    let fileSize: number = 0
-    
-    try {
-      // First, check the file using fetch to get size info
-      const fileCheckResponse = await fetch(audioUri)
-      if (!fileCheckResponse.ok) {
-        console.error('❌ Failed to access audio file. Status:', fileCheckResponse.status)
-        return { success: false, error: `Failed to access audio file: ${fileCheckResponse.status}` }
-      }
-      
-      const checkBlob = await fileCheckResponse.blob()
-      fileSize = checkBlob.size
-      
-      console.log('📄 Initial file check:')
-      console.log('  - File path for upload:', filePath)
-      console.log('  - Local file size:', fileSize, 'bytes')
-      console.log('  - File type:', checkBlob.type)
-      
-      if (fileSize === 0) {
-        console.error('❌ Audio file is empty!')
-        return { success: false, error: 'Audio file is empty - no data to upload. Please try recording again.' }
-      }
+    // Convert URI to blob for upload
+    const response = await fetch(audioUri)
+    const blob = await response.blob()
+    const arrayBuffer = await blob.arrayBuffer()
 
-      if (fileSize < 1000) { // Less than 1KB is likely an invalid recording
-        console.warn('⚠️ Audio file is very small:', fileSize, 'bytes')
-        console.log('This might be an incomplete recording')
-      }
-
-      // For React Native file uploads, we can use the URI directly or the blob
-      // Let's try using the blob first, and if that fails, we'll use the URI
-      fileData = checkBlob
-      console.log('📤 Using blob data for upload, size:', fileData.size, 'bytes')
-      
-    } catch (fileError) {
-      console.error('❌ Error reading file:', fileError)
-      return { success: false, error: 'Failed to read audio file' }
-    }
-
-    // Upload to Supabase storage
-    console.log('🚀 Uploading to Supabase storage...')
-    
-    // For React Native, let's try uploading the URI directly instead of blob
-    let uploadData: any
-    
-    try {
-      // Method 1: Create a proper File object from the URI for React Native
-      console.log('📤 Creating file object from URI...')
-      
-      // Create a File-like object for React Native upload
-      const fileObject = {
-        uri: audioUri,
-        type: 'audio/m4a',
-        name: audioFilename,
-      }
-      
-      console.log('📤 File object created:', fileObject)
-      uploadData = fileObject
-      
-    } catch (fileError) {
-      console.error('❌ Failed to create file object, falling back to blob')
-      uploadData = fileData
-    }
-    
     const { data, error } = await supabase.storage
       .from('audio')
-      .upload(filePath, uploadData, {
+      .upload(filePath, arrayBuffer, {
         contentType: 'audio/m4a',
-        upsert: false,
+        upsert: false
       })
-    
-    console.log('📤 Upload response data:', data)
-    console.log('📤 Upload response error:', error)
 
     if (error) {
-      console.error('❌ Storage upload error:', error)
+      console.error('❌ Upload error:', error.message)
       return { success: false, error: error.message }
     }
 
-    // Get the public URL for the uploaded file
-    const { data: publicUrlData } = supabase.storage
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
       .from('audio')
       .getPublicUrl(filePath)
 
-    const audioUrl = publicUrlData.publicUrl
-    console.log('🔗 Generated public URL:', audioUrl)
-
-    // Verify the upload by checking the file size
-    console.log('🔍 Verifying upload...')
-    try {
-      const verifyResponse = await fetch(audioUrl)
-      console.log('🔍 Verification response status:', verifyResponse.status)
-      console.log('🔍 Verification response headers:', Object.fromEntries(verifyResponse.headers.entries()))
-      
-      if (verifyResponse.ok) {
-        const verifyBlob = await verifyResponse.blob()
-        console.log('🔍 Uploaded file size verification:', verifyBlob.size, 'bytes')
-        
-        if (verifyBlob.size === 0) {
-          console.error('❌ Uploaded file is empty! Upload failed.')
-          return { success: false, error: 'File uploaded but appears empty in storage' }
-        }
-        
-        if (verifyBlob.size !== fileSize) {
-          console.warn('⚠️ Size mismatch - Local:', fileSize, 'bytes, Uploaded:', verifyBlob.size, 'bytes')
-        }
-      } else {
-        console.warn('⚠️ Could not verify upload, but continuing anyway')
-      }
-    } catch (verifyError) {
-      console.warn('⚠️ Upload verification failed:', verifyError)
-      // Continue anyway - verification is just a check
-    }
-
-    console.log('✅ Audio uploaded successfully:', audioUrl)
-    return { success: true, audioUrl }
-
+    console.log('✅ Audio uploaded successfully')
+    return { success: true, audioUrl: publicUrl }
   } catch (error) {
-    console.error('❌ Upload error:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Upload failed' 
-    }
+    console.error('❌ Upload exception:', error)
+    return { success: false, error: 'Failed to upload audio file' }
   }
 }
 
-/**
- * Delete audio file from storage
- */
-export const deleteAudioFile = async (audioUrl: string): Promise<{ success: boolean; error?: string }> => {
-  try {
-    // Extract file path from URL
-    const url = new URL(audioUrl)
-    const pathParts = url.pathname.split('/')
-    const filePath = pathParts.slice(-2).join('/') // Get user_id/filename
-
-    const { error } = await supabase.storage
-      .from('audio')
-      .remove([filePath])
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: true }
-  } catch (error) {
-    console.error('Error deleting audio file:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Delete failed' 
-    }
-  }
-}
-
-// ==========================================
-// AUDIO PIN METHODS
-// ==========================================
-
-/**
- * Create a new audio pin with uploaded audio
- */
 export const createAudioPin = async (
   audioUri: string,
   pinData: CreateAudioPinData,
   filename?: string
-): Promise<CreatePinResult> => {
+): Promise<{ success: boolean; pin?: Pin; error?: string }> => {
   try {
-    console.log('🔄 Creating audio pin...')
+    console.log('📍 Creating audio pin...')
     
-    // Get current user
-    const user = await getCurrentUser()
-    if (!user) {
-      return { success: false, error: 'User not authenticated' }
-    }
-
-    // First, upload the audio file
+    // First upload the audio file
     const uploadResult = await uploadAudioFile(audioUri, filename)
-    if (!uploadResult.success || !uploadResult.audioUrl) {
-      return { success: false, error: uploadResult.error || 'Audio upload failed' }
+    if (!uploadResult.success) {
+      return { success: false, error: uploadResult.error }
     }
 
-    // Create the pin record in the database
-    const { data, error } = await supabase
-      .from('pins')
-      .insert({
-        user_id: user.id,
-        lat: pinData.lat,
-        lng: pinData.lng,
-        audio_url: uploadResult.audioUrl,
-        title: pinData.title,
-        description: pinData.description,
-        duration: pinData.duration,
-        file_size: pinData.file_size,
-      })
-      .select()
-      .single()
+    // Then create the pin with the audio URL
+    const { data: pin, error } = await DatabaseService.createPin({
+      ...pinData,
+      audio_url: uploadResult.audioUrl!
+    })
 
     if (error) {
-      console.error('❌ Database insert error:', error)
-      // Clean up uploaded file if database insert fails
-      await deleteAudioFile(uploadResult.audioUrl)
-      return { success: false, error: error.message }
+      console.error('❌ Error creating pin:', error)
+      return { success: false, error: 'Failed to create pin' }
     }
 
-    console.log('✅ Audio pin created successfully:', data.id)
-    return { success: true, pin: data as AudioPin }
-
+    console.log('✅ Audio pin created successfully')
+    return { success: true, pin: pin! }
   } catch (error) {
-    console.error('❌ Create pin error:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to create pin' 
-    }
+    console.error('❌ Exception creating audio pin:', error)
+    return { success: false, error: 'Failed to create audio pin' }
   }
 }
 
-/**
- * Fetch all audio pins (with optional location-based filtering)
- */
 export const fetchAudioPins = async (
   bounds?: {
     northEast: { lat: number; lng: number }
     southWest: { lat: number; lng: number }
   }
-): Promise<{ success: boolean; pins?: AudioPin[]; error?: string }> => {
+): Promise<{ success: boolean; pins?: Pin[]; error?: string }> => {
   try {
-    let query = supabase
-      .from('pins')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    // Add location bounds filter if provided
     if (bounds) {
-      query = query
-        .gte('lat', bounds.southWest.lat)
-        .lte('lat', bounds.northEast.lat)
-        .gte('lng', bounds.southWest.lng)
-        .lte('lng', bounds.northEast.lng)
+      // Calculate center point and radius for location-based search
+      const centerLat = (bounds.northEast.lat + bounds.southWest.lat) / 2
+      const centerLng = (bounds.northEast.lng + bounds.southWest.lng) / 2
+      const radius = Math.max(
+        Math.abs(bounds.northEast.lat - bounds.southWest.lat),
+        Math.abs(bounds.northEast.lng - bounds.southWest.lng)
+      ) / 2
+
+      const { data: pins, error } = await DatabaseService.getNearbyPins(centerLat, centerLng, radius)
+      
+      if (error) {
+        return { success: false, error: 'Failed to fetch pins' }
+      }
+
+      return { success: true, pins: pins || [] }
+    } else {
+      // Fetch all pins (for initial load)
+      const { data, error } = await supabase
+        .from('pins')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100) // Reasonable limit
+
+      if (error) {
+        console.error('❌ Error fetching pins:', error)
+        return { success: false, error: 'Failed to fetch pins' }
+      }
+
+      return { success: true, pins: data || [] }
     }
-
-    const { data, error } = await query
-
-    if (error) {
-      console.error('Error fetching pins:', error)
-      return { success: false, error: error.message }
-    }
-
-    return { success: true, pins: data as AudioPin[] }
-
   } catch (error) {
-    console.error('Error fetching pins:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to fetch pins' 
-    }
+    console.error('❌ Exception fetching pins:', error)
+    return { success: false, error: 'Failed to fetch pins' }
   }
 }
 
-/**
- * Fetch pins created by the current user
- */
-export const fetchUserPins = async (): Promise<{ success: boolean; pins?: AudioPin[]; error?: string }> => {
+export const fetchUserPins = async (): Promise<{ success: boolean; pins?: Pin[]; error?: string }> => {
   try {
-    const user = await getCurrentUser()
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return { success: false, error: 'User not authenticated' }
+      return { success: false, error: 'No authenticated user' }
     }
 
-    const { data, error } = await supabase
-      .from('pins')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-
+    const { data: pins, error } = await DatabaseService.getUserPins(user.id)
+    
     if (error) {
-      return { success: false, error: error.message }
+      return { success: false, error: 'Failed to fetch user pins' }
     }
 
-    return { success: true, pins: data as AudioPin[] }
-
+    return { success: true, pins: pins || [] }
   } catch (error) {
-    console.error('Error fetching user pins:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to fetch pins' 
-    }
+    console.error('❌ Exception fetching user pins:', error)
+    return { success: false, error: 'Failed to fetch user pins' }
   }
 }
 
-/**
- * Delete an audio pin (and its associated audio file)
- */
 export const deleteAudioPin = async (pinId: string): Promise<{ success: boolean; error?: string }> => {
   try {
-    // First, get the pin to retrieve the audio URL
-    const { data: pin, error: fetchError } = await supabase
-      .from('pins')
-      .select('audio_url, user_id')
-      .eq('id', pinId)
-      .single()
-
-    if (fetchError || !pin) {
-      return { success: false, error: 'Pin not found' }
-    }
-
-    // Verify user owns this pin
-    const user = await getCurrentUser()
-    if (!user || user.id !== pin.user_id) {
-      return { success: false, error: 'Unauthorized' }
-    }
-
-    // Delete the audio file from storage
-    await deleteAudioFile(pin.audio_url)
-
-    // Delete the pin record from database
-    const { error: deleteError } = await supabase
-      .from('pins')
-      .delete()
-      .eq('id', pinId)
-
-    if (deleteError) {
-      return { success: false, error: deleteError.message }
+    const { error } = await DatabaseService.deletePin(pinId)
+    
+    if (error) {
+      return { success: false, error: 'Failed to delete pin' }
     }
 
     return { success: true }
-
   } catch (error) {
-    console.error('Error deleting pin:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to delete pin' 
-    }
+    console.error('❌ Exception deleting pin:', error)
+    return { success: false, error: 'Failed to delete pin' }
   }
 } 
