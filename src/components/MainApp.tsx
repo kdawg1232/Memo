@@ -5,9 +5,10 @@ import FriendsScreen from '../screens/FriendsScreen'
 import ProfileScreen from '../screens/ProfileScreen'
 import SettingsScreen from '../screens/SettingsScreen'
 import CreateGroupScreen from '../screens/CreateGroupScreen'
+import GroupScreen from '../screens/GroupScreen'
 import { MapIcon, ProfileIcon, FriendsIcon } from './Icons'
 
-type ScreenType = 'map' | 'friends' | 'profile' | 'settings' | 'createGroup'
+type ScreenType = 'map' | 'friends' | 'profile' | 'settings' | 'createGroup' | 'group'
 
 const { width } = Dimensions.get('window')
 
@@ -16,6 +17,7 @@ const MainApp: React.FC = () => {
   const [shouldCenterOnUser, setShouldCenterOnUser] = useState<boolean>(false)
   const [mapRefreshTrigger, setMapRefreshTrigger] = useState<number>(0)
   const [friendsRefreshTrigger, setFriendsRefreshTrigger] = useState<number>(0)
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('')
   
   // Animation values for screen transitions
   const slideAnim = useRef(new Animated.Value(0)).current
@@ -105,6 +107,12 @@ const MainApp: React.FC = () => {
     animateToScreen('createGroup')
   }
 
+  const handleNavigateToGroup = (groupId: string) => {
+    console.log('📋 Animating to group screen for group:', groupId)
+    setSelectedGroupId(groupId)
+    animateToScreen('group')
+  }
+
   // Render the current screen
   const renderCurrentScreen = () => {
     switch (currentScreen) {
@@ -117,13 +125,15 @@ const MainApp: React.FC = () => {
           />
         )
       case 'friends':
-        return <FriendsScreen onNavigateBack={handleNavigateToMap} onNavigateToCreateGroup={handleNavigateToCreateGroup} refreshTrigger={friendsRefreshTrigger} />
+        return <FriendsScreen onNavigateBack={handleNavigateToMap} onNavigateToCreateGroup={handleNavigateToCreateGroup} onNavigateToGroup={handleNavigateToGroup} refreshTrigger={friendsRefreshTrigger} />
       case 'profile':
         return <ProfileScreen onNavigateBack={handleNavigateToMap} onNavigateToSettings={handleNavigateToSettings} />
       case 'settings':
         return <SettingsScreen onNavigateBack={handleNavigateToProfile} />
       case 'createGroup':
         return <CreateGroupScreen onNavigateBack={handleNavigateToFriends} />
+      case 'group':
+        return <GroupScreen groupId={selectedGroupId} onNavigateBack={handleNavigateToFriends} />
       default:
         return (
           <MapScreen 

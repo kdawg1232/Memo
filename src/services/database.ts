@@ -543,6 +543,130 @@ export class DatabaseService {
   }
 
   /**
+   * Get a specific group by ID with all its details
+   * @param groupId - The group ID to fetch
+   * @param userId - The user ID making the request (for permission checking)
+   * @returns Promise with group details or error
+   */
+  static async getGroupById(groupId: string, userId: string): Promise<{ data: GroupWithMembers | null; error: any }> {
+    try {
+      console.log('🔍 DatabaseService: Getting group by ID:', groupId)
+      
+      // First check if user has access to this group (is a member)
+      const { data: membershipData, error: membershipError } = await supabase
+        .from('group_members')
+        .select('group_id, role, status')
+        .eq('group_id', groupId)
+        .eq('user_id', userId)
+        .eq('status', 'accepted')
+        .single()
+
+      if (membershipError && membershipError.code !== 'PGRST116') { // PGRST116 = no rows
+        console.error('❌ DatabaseService: Error checking group membership:', membershipError.message)
+        return { data: null, error: membershipError }
+      }
+
+      // Also check if user created the group (as fallback)
+      const { data: groupOwnerCheck, error: ownerError } = await supabase
+        .from('groups')
+        .select('id')
+        .eq('id', groupId)
+        .eq('created_by', userId)
+        .single()
+
+      if (ownerError && ownerError.code !== 'PGRST116') {
+        console.error('❌ DatabaseService: Error checking group ownership:', ownerError.message)
+      }
+
+      // If user is neither a member nor the creator, deny access
+      if (!membershipData && !groupOwnerCheck) {
+        console.log('❌ DatabaseService: User does not have access to this group')
+        return { data: null, error: new Error('Access denied') }
+      }
+
+      // Get group details
+      const { data: groupData, error: groupError } = await supabase
+        .from('groups')
+        .select('*')
+        .eq('id', groupId)
+        .single()
+
+      if (groupError) {
+        console.error('❌ DatabaseService: Error fetching group:', groupError.message)
+        return { data: null, error: groupError }
+      }
+
+      // Get all members for this group
+      const { data: allMembers, error: membersError } = await supabase
+        .from('group_members')
+        .select('*')
+        .eq('group_id', groupId)
+
+      if (membersError) {
+        console.error('❌ DatabaseService: Error fetching group members:', membersError.message)
+        return { data: null, error: membersError }
+      }
+
+      // Get user details for all relevant users (creator and members)
+      const userIds = new Set<string>()
+      userIds.add(groupData.created_by)
+      allMembers?.forEach(member => {
+        userIds.add(member.user_id)
+        if (member.invited_by) userIds.add(member.invited_by)
+      })
+
+      // Try to fetch users with profile_picture_url, fallback without it if column doesn't exist
+      let { data: allUsers, error: usersError } = await supabase
+        .from('users')
+        .select('id, username, first_name, last_name, profile_picture_url')
+        .in('id', Array.from(userIds))
+
+      // If profile_picture_url column doesn't exist, retry without it
+      if (usersError && usersError.code === '42703') {
+        console.log('⚠️ profile_picture_url column not found in getGroupById, retrying without it...')
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, username, first_name, last_name')
+          .in('id', Array.from(userIds))
+        // Add missing profile_picture_url field with null values for backward compatibility
+        allUsers = data?.map(user => ({ ...user, profile_picture_url: null })) || null
+        usersError = error
+      }
+
+      if (usersError) {
+        console.error('❌ DatabaseService: Error fetching user details:', usersError.message)
+        return { data: null, error: usersError }
+      }
+
+      // Create a user lookup map for efficient data joining
+      const userMap = new Map(allUsers?.map(user => [user.id, user]) || [])
+
+      // Combine the data with manual joins
+      const groupMembers = allMembers || []
+      
+      // Add user data to each member
+      const membersWithUserData = groupMembers.map(member => ({
+        ...member,
+        user: userMap.get(member.user_id) || null,
+        invited_by_user: member.invited_by ? userMap.get(member.invited_by) || null : null
+      }))
+
+      const groupWithMembers: GroupWithMembers = {
+        ...groupData,
+        created_by_user: userMap.get(groupData.created_by) || null,
+        members: membersWithUserData,
+        member_count: membersWithUserData.filter(member => member.status === 'accepted').length
+      }
+
+      console.log(`✅ DatabaseService: Found group: ${groupWithMembers.name}`)
+      return { data: groupWithMembers, error: null }
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception fetching group by ID:', error)
+      return { data: null, error }
+    }
+  }
+
+  /**
    * Search users to invite to a group (excludes current members)
    * @param searchTerm - The search term to look for
    * @param groupId - The group ID to exclude current members from

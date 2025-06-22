@@ -921,49 +921,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack, onNavigat
           )}
         </View>
 
-        {/* Group Invitations Section */}
-        {pendingInvitations.length > 0 && (
-          <View style={styles.invitationsSection}>
-            <Text style={styles.sectionTitle}>Group Invitations</Text>
-            <View style={styles.invitationAlert}>
-              <Text style={styles.invitationAlertText}>
-                🎉 You have {pendingInvitations.length} group invitation{pendingInvitations.length !== 1 ? 's' : ''}!
-              </Text>
-            </View>
-            
-            {pendingInvitations.map((invitation) => (
-              <View key={invitation.id} style={styles.invitationItem}>
-                <View style={styles.invitationInfo}>
-                  <Text style={styles.invitationGroupName}>{invitation.group.name}</Text>
-                  <Text style={styles.invitationFromText}>
-                    Invited by {invitation.invited_by_user.first_name} {invitation.invited_by_user.last_name}
-                  </Text>
-                  <Text style={styles.invitationDateText}>
-                    {formatDate(invitation.joined_at)}
-                  </Text>
-                </View>
-                
-                <View style={styles.invitationActions}>
-                  <TouchableOpacity
-                    style={styles.declineButton}
-                    onPress={() => handleInvitationResponse(invitation.id, 'declined')}
-                  >
-                    <Text style={styles.declineButtonText}>Decline</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={styles.acceptButton}
-                    onPress={() => handleInvitationResponse(invitation.id, 'accepted')}
-                  >
-                    <Text style={styles.acceptButtonText}>Accept</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-
       </ScrollView>
     </View>
   )
@@ -1101,6 +1058,7 @@ const styles = StyleSheet.create({
     color: '#808080',
     textAlign: 'center',
   },
+
   pinsSection: {
     paddingHorizontal: 20,
     paddingBottom: 100,
