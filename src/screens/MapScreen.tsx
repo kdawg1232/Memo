@@ -270,8 +270,8 @@ const MapScreen: React.FC<MapScreenProps> = ({
   // Get pin color based on filter type and member
   const getPinColor = (pin: AudioPin | GroupPinWithDetails): string => {
     if (selectedFilter?.type === 'personal') {
-      // For personal pins, always use orange
-      return 'orange'
+      // For personal pins, always use orange (#FF6B35)
+      return '#FF6B35'
     }
 
     if (selectedFilter?.type === 'group') {
@@ -290,19 +290,32 @@ const MapScreen: React.FC<MapScreenProps> = ({
       return '#FF6B35'
     }
 
-    // Default fallback
-    return 'orange'
+    // Default fallback to orange for personal pins
+    return '#FF6B35'
   }
 
   // Convert hex color to react-native-maps pinColor string or return custom color
   const formatPinColor = (color: string): string => {
     // Map common colors to react-native-maps predefined colors for better performance
+    // For unmapped colors, pass the hex value directly
     const colorMap: { [key: string]: string } = {
-      '#FF6B35': 'orange',
-      '#E53E3E': 'red', 
-      '#38A169': 'green',
-      '#3182CE': 'blue',
-      '#805AD5': 'purple',
+      '#FF6B35': 'orange',  // Default personal pin color (Orange)
+      '#E53E3E': 'red',     // Red
+      '#38A169': 'green',   // Green  
+      '#3182CE': 'blue',    // Blue
+      '#805AD5': 'purple',  // Purple
+      // All other colors from ColorPicker - pass through as hex
+      '#4ECDC4': '#4ECDC4', // Teal
+      '#FFA726': '#FFA726', // Light Orange
+      '#EC4899': '#EC4899', // Pink
+      '#F56565': '#F56565', // Light Red
+      '#48BB78': '#48BB78', // Light Green
+      '#4299E1': '#4299E1', // Light Blue
+      '#9F7AEA': '#9F7AEA', // Light Purple
+      '#ED8936': '#ED8936', // Amber
+      '#38B2AC': '#38B2AC', // Cyan
+      '#667EEA': '#667EEA', // Indigo
+      '#2D3748': '#2D3748', // Dark Gray
     }
     
     return colorMap[color] || color

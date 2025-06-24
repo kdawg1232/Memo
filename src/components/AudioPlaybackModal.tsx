@@ -441,17 +441,7 @@ const AudioPlaybackModal: React.FC<AudioPlaybackModalProps> = ({
             </Text>
           )}
 
-          {/* Debug Info */}
-          {__DEV__ && (
-            <View style={styles.debugInfo}>
-              <Text style={styles.debugText}>
-                State: {playbackState} | Time: {formatTime(currentTime)}/{formatTime(duration)}
-              </Text>
-              <Text style={styles.debugText}>
-                URL: {pin.audio_url?.substring(0, 50)}...
-              </Text>
-            </View>
-          )}
+
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -601,17 +591,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontStyle: 'italic',
   },
-  debugInfo: {
-    marginTop: 16,
-    padding: 8,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 4,
-  },
-  debugText: {
-    fontSize: 10,
-    color: '#808080',
-    fontFamily: 'monospace',
-  },
+
 });
 
 export default AudioPlaybackModal; 
