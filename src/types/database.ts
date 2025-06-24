@@ -50,6 +50,7 @@ export interface GroupMember {
   invited_by?: string | null
   joined_at: string
   updated_at: string
+  pin_color: string // Hex color code for member's pins (format: #RRGGBB)
 }
 
 // Extended type for group member with user details

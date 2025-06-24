@@ -204,12 +204,12 @@ const PinItem: React.FC<PinItemProps> = ({
               <View style={styles.playButtonIcon}>
                 {item.isPlaying || item.isPaused ? (
                   item.isPlaying ? (
-                    <Text style={styles.pauseButtonText}>⏸︎</Text>
+                    <Text style={styles.pauseButtonText}>Pause</Text>
                   ) : (
-                    <Text style={styles.playButtonText}>▶</Text>
+                    <Text style={styles.playButtonText}>Play</Text>
                   )
                 ) : (
-                  <Text style={styles.playButtonText}>▶</Text>
+                  <Text style={styles.playButtonText}>Play</Text>
                 )}
               </View>
             </View>
@@ -840,7 +840,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack, onNavigat
         <View style={styles.headerLeft} />
         <Text style={styles.headerTitle}>Profile</Text>
         <TouchableOpacity style={styles.settingsButton} onPress={onNavigateToSettings}>
-          <Text style={styles.settingsButtonText}>⚙️</Text>
+          <Text style={styles.settingsButtonText}>Settings</Text>
         </TouchableOpacity>
       </View>
 
@@ -877,7 +877,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigateBack, onNavigat
             {/* Upload indicator overlay */}
             {!uploadingProfilePicture && (
               <View style={styles.avatarOverlay}>
-                <Text style={styles.avatarOverlayText}>📷</Text>
+                <Text style={styles.avatarOverlayText}>Upload</Text>
               </View>
             )}
           </TouchableOpacity>

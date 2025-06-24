@@ -10,18 +10,21 @@ import {
 } from 'react-native'
 import MapView, { Marker, Region, PROVIDER_DEFAULT } from 'react-native-maps'
 import { useLocation } from '../hooks/useLocation'
+import { useAuth } from '../hooks/useAuth'
 import { MapRegion, DEFAULT_LATITUDE_DELTA, DEFAULT_LONGITUDE_DELTA } from '../types/location'
 import { AudioIcon } from '../components/Icons'
 import VoiceRecordingModal from '../components/VoiceRecordingModal'
 import AudioPlaybackModal from '../components/AudioPlaybackModal'
 import GroupSelectionModal from '../components/GroupSelectionModal'
+import MapFilterDropdown, { FilterOption } from '../components/MapFilterDropdown'
 import { 
   createAudioPin, 
   fetchAudioPins, 
   deleteAudioPin,
   AudioPin, 
   CreateAudioPinData,
-  DatabaseService 
+  DatabaseService,
+  GroupPinWithDetails 
 } from '../services/database'
 
 interface MapScreenProps {
@@ -35,6 +38,7 @@ const MapScreen: React.FC<MapScreenProps> = ({
   onCenterCompleted,
   refreshTrigger = 0
 }) => {
+  const { user } = useAuth()
   const {
     location,
     loading,
@@ -62,6 +66,12 @@ const MapScreen: React.FC<MapScreenProps> = ({
     audioUri: string
     durationSeconds: number
   } | null>(null)
+  const [justDeletedPin, setJustDeletedPin] = useState(false)
+
+  // New state for map filtering and color-coded pins
+  const [selectedFilter, setSelectedFilter] = useState<FilterOption | null>(null)
+  const [filteredPins, setFilteredPins] = useState<(AudioPin | GroupPinWithDetails)[]>([])
+  const [filterRefreshTrigger, setFilterRefreshTrigger] = useState(0)
 
   // Update map region when location changes
   useEffect(() => {
@@ -76,35 +86,111 @@ const MapScreen: React.FC<MapScreenProps> = ({
     }
   }, [location])
 
-  // Load audio pins when component mounts or location changes
+  // Load filtered pins when component mounts, location changes, or filter changes
   useEffect(() => {
-    loadAudioPins()
-  }, [location])
+    if (selectedFilter) {
+      loadFilteredPins()
+    }
+  }, [location, selectedFilter])
 
-  // Reload pins when returning from ProfileScreen (when pins might have been deleted)
+  // Reload filtered pins when returning from ProfileScreen (when pins might have been deleted)
   useEffect(() => {
     if (refreshTrigger > 0) {
-      console.log('🔄 Refresh trigger activated, reloading pins...')
-      loadAudioPins()
+      console.log('🔄 Refresh trigger activated, reloading filtered pins...')
+      if (selectedFilter) {
+        loadFilteredPins()
+      }
+      // Also trigger a refresh of the filter dropdown (in case groups were added/deleted)
+      setFilterRefreshTrigger(prev => prev + 1)
     }
   }, [refreshTrigger])
 
-  // Reload pins when modal closes (in case new pins were added elsewhere)
+  // Reload filtered pins when modal closes (in case new pins were added elsewhere)
+  // But don't reload if we just deleted a pin to avoid undoing the local state update
   useEffect(() => {
-    if (!isRecordingModalVisible && !isPlaybackModalVisible) {
-      loadAudioPins()
+    if (!isRecordingModalVisible && !isPlaybackModalVisible && !justDeletedPin) {
+      if (selectedFilter) {
+        loadFilteredPins()
+      }
     }
-  }, [isRecordingModalVisible, isPlaybackModalVisible])
+    // Reset the justDeletedPin flag after the modal closes
+    if (!isPlaybackModalVisible && justDeletedPin) {
+      // Add a longer delay before allowing reloads after deletion to ensure database consistency
+      setTimeout(() => {
+        setJustDeletedPin(false)
+      }, 3000) // 3 second delay to allow database to propagate changes
+    }
+  }, [isRecordingModalVisible, isPlaybackModalVisible, justDeletedPin, selectedFilter])
 
-  // Debug: Log when audioPins state changes
+  // Debug: Log when filteredPins state changes
   useEffect(() => {
-    console.log('🔄 AudioPins state updated. Count:', audioPins.length)
-    audioPins.forEach((pin, index) => {
-      console.log(`🟠 Pin ${index}: ID=${pin.id}, lat=${pin.lat}, lng=${pin.lng}`)
+    console.log('🔄 FilteredPins state updated. Count:', filteredPins.length)
+    filteredPins.forEach((pin, index) => {
+      const pinData = 'pin' in pin ? pin.pin : pin
+      console.log(`🎨 Pin ${index}: ID=${pinData.id}, lat=${pinData.lat}, lng=${pinData.lng}`)
     })
-  }, [audioPins])
+  }, [filteredPins])
 
-  // Load audio pins from database
+  // Load filtered pins based on selected filter
+  const loadFilteredPins = async () => {
+    if (!selectedFilter) {
+      setFilteredPins([])
+      return
+    }
+
+    try {
+      setIsLoadingPins(true)
+      console.log('🔄 Loading filtered pins for:', selectedFilter.name)
+
+      if (selectedFilter.type === 'personal') {
+        // Load ONLY the current user's personal pins
+        if (!user?.id) {
+          console.error('❌ No authenticated user for personal pins')
+          setFilteredPins([])
+          return
+        }
+
+        const { data: userPins, error } = await DatabaseService.getUserPins(user.id)
+        
+        if (error) {
+          console.error('❌ Failed to load user personal pins:', error)
+          setFilteredPins([])
+          return
+        }
+
+        if (userPins) {
+          console.log('✅ Loaded', userPins.length, 'personal audio pins for user:', user.id)
+          setFilteredPins(userPins)
+        } else {
+          console.log('ℹ️ No personal pins found for user')
+          setFilteredPins([])
+        }
+      } else if (selectedFilter.type === 'group') {
+        // Load group pins
+        const { data: groupPins, error } = await DatabaseService.getGroupPins(selectedFilter.id)
+        
+        if (error) {
+          console.error('❌ Failed to load group pins:', error)
+          setFilteredPins([])
+          return
+        }
+
+        if (groupPins) {
+          console.log('✅ Loaded', groupPins.length, 'group pins')
+          setFilteredPins(groupPins)
+        } else {
+          setFilteredPins([])
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error loading filtered pins:', error)
+      setFilteredPins([])
+    } finally {
+      setIsLoadingPins(false)
+    }
+  }
+
+  // Legacy function - kept for backward compatibility during transition
   const loadAudioPins = async () => {
     try {
       setIsLoadingPins(true)
@@ -172,6 +258,54 @@ const MapScreen: React.FC<MapScreenProps> = ({
   // Handle location refresh
   const handleRefreshLocation = async () => {
     await refreshLocation()
+  }
+
+  // Handle filter change
+  const handleFilterChange = (filter: FilterOption | null) => {
+    console.log('🎯 Map filter changed to:', filter?.name || 'None')
+    setSelectedFilter(filter)
+    // Filtered pins will be loaded automatically by useEffect
+  }
+
+  // Get pin color based on filter type and member
+  const getPinColor = (pin: AudioPin | GroupPinWithDetails): string => {
+    if (selectedFilter?.type === 'personal') {
+      // For personal pins, always use orange
+      return 'orange'
+    }
+
+    if (selectedFilter?.type === 'group') {
+      // For group pins, use member's custom color
+      const groupPin = pin as GroupPinWithDetails
+      if (groupPin.added_by_user_id && selectedFilter.groupData) {
+        // Find the member who added this pin
+        const member = selectedFilter.groupData.members.find(
+          m => m.user_id === groupPin.added_by_user_id
+        )
+        if (member && member.pin_color) {
+          return member.pin_color
+        }
+      }
+      // Fallback to orange if no color found
+      return '#FF6B35'
+    }
+
+    // Default fallback
+    return 'orange'
+  }
+
+  // Convert hex color to react-native-maps pinColor string or return custom color
+  const formatPinColor = (color: string): string => {
+    // Map common colors to react-native-maps predefined colors for better performance
+    const colorMap: { [key: string]: string } = {
+      '#FF6B35': 'orange',
+      '#E53E3E': 'red', 
+      '#38A169': 'green',
+      '#3182CE': 'blue',
+      '#805AD5': 'purple',
+    }
+    
+    return colorMap[color] || color
   }
 
   // Handle record button press
@@ -268,13 +402,6 @@ const MapScreen: React.FC<MapScreenProps> = ({
           console.log('ℹ️ No groups selected - pin saved as personal only')
         }
         
-        // Add the new pin to our local state
-        setAudioPins(prevPins => {
-          const newPins = [result.pin!, ...prevPins]
-          console.log('🔢 New pins count:', newPins.length)
-          return newPins
-        })
-        
         // Show success message
         const successMessage = selectedGroupIds.length > 0 
           ? `Your audio pin has been created and shared with ${selectedGroupIds.length} group${selectedGroupIds.length > 1 ? 's' : ''}!`
@@ -285,6 +412,12 @@ const MapScreen: React.FC<MapScreenProps> = ({
         // Clean up
         setIsGroupSelectionVisible(false)
         setPendingRecordingData(null)
+        
+        // Refresh filtered pins and dropdown options to include the new pin
+        if (selectedFilter) {
+          loadFilteredPins()
+        }
+        setFilterRefreshTrigger(prev => prev + 1) // Refresh dropdown options
       } else {
         console.error('❌ Failed to create pin:', result.error)
         Alert.alert('Upload Failed', result.error || 'Unable to create audio pin. Please try again.')
@@ -323,23 +456,47 @@ const MapScreen: React.FC<MapScreenProps> = ({
     try {
       console.log('🗑️ Deleting audio pin:', pinId)
       
+      // Set flag immediately to prevent any reloads during deletion
+      setJustDeletedPin(true)
+      
       const result = await deleteAudioPin(pinId)
       
       if (result.success) {
         console.log('✅ Pin deleted successfully')
         
-        // Remove the pin from local state
-        setAudioPins(prevPins => prevPins.filter(pin => pin.id !== pinId))
+        // Remove the pin from local filtered state immediately for responsive UI
+        setFilteredPins(prevPins => {
+          const updatedPins = prevPins.filter(pin => {
+            const pinData = 'pin' in pin ? pin.pin : pin
+            return pinData.id !== pinId
+          })
+          console.log(`🔄 Local filtered state updated: removed pin ${pinId}, new count: ${updatedPins.length}`)
+          return updatedPins
+        })
         
         Alert.alert('Success', 'Audio pin deleted successfully!', [
           { text: 'OK', onPress: () => console.log('Pin deletion confirmed') }
         ])
+        
+        // Force a delayed reload to ensure database consistency
+        // This will happen after the justDeletedPin flag is cleared
+        setTimeout(() => {
+          console.log('🔄 Performing delayed reload after deletion to ensure consistency')
+          if (selectedFilter) {
+            loadFilteredPins()
+          }
+        }, 2000) // 2 second delay
+        
       } else {
         console.error('❌ Failed to delete pin:', result.error)
+        // Reset flag on failure
+        setJustDeletedPin(false)
         Alert.alert('Delete Failed', result.error || 'Unable to delete audio pin. Please try again.')
       }
     } catch (error) {
       console.error('❌ Error deleting pin:', error)
+      // Reset flag on error
+      setJustDeletedPin(false)
       Alert.alert('Error', 'An unexpected error occurred while deleting the pin.')
     }
   }
@@ -421,21 +578,27 @@ const MapScreen: React.FC<MapScreenProps> = ({
           zoomEnabled={true}
           pitchEnabled={true}
         >
-          {/* Audio pin markers */}
-          {audioPins.map((pin, index) => {
-            if (index === 0) console.log('🗺️ Rendering', audioPins.length, 'audio pins on map')
-            console.log(`🟠 Pin ${index + 1}:`, pin.id, 'at', pin.lat, pin.lng, 'created:', new Date(pin.created_at).toLocaleTimeString())
+          {/* Filtered pin markers with colors */}
+          {filteredPins.map((pin, index) => {
+            // Get the actual pin data (handle both AudioPin and GroupPinWithDetails)
+            const pinData = 'pin' in pin ? pin.pin : pin
+            const pinColor = getPinColor(pin)
+            const formattedColor = formatPinColor(pinColor)
+            
+            if (index === 0) console.log('🗺️ Rendering', filteredPins.length, 'filtered pins on map')
+            console.log(`🎨 Pin ${index + 1}:`, pinData.id, 'at', pinData.lat, pinData.lng, 'color:', formattedColor)
+            
             return (
               <Marker
-                key={pin.id}
+                key={pinData.id}
                 coordinate={{
-                  latitude: pin.lat,
-                  longitude: pin.lng,
+                  latitude: pinData.lat,
+                  longitude: pinData.lng,
                 }}
-                title={pin.title || `Voice Memo ${index + 1}`}
-                description={`Tap to play • ${new Date(pin.created_at).toLocaleDateString()}`}
-                pinColor="orange"
-                onPress={() => handlePinPress(pin)}
+                title={pinData.title || `Voice Memo ${index + 1}`}
+                description={`Tap to play • ${new Date(pinData.created_at).toLocaleDateString()}`}
+                pinColor={formattedColor}
+                onPress={() => handlePinPress(pinData)}
               />
             )
           })}
@@ -509,6 +672,13 @@ const MapScreen: React.FC<MapScreenProps> = ({
           durationSeconds={pendingRecordingData.durationSeconds}
         />
       )}
+
+      {/* Filter Dropdown - Floating over map */}
+      <MapFilterDropdown
+        selectedFilter={selectedFilter}
+        onFilterChange={handleFilterChange}
+        refreshTrigger={filterRefreshTrigger}
+      />
     </View>
   )
 }

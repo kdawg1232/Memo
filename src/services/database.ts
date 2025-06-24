@@ -926,6 +926,55 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Delete a group entirely (only for group owners)
+   * This will cascade delete all group members and group pins
+   * @param groupId - The ID of the group to delete
+   * @param userId - The ID of the user requesting deletion (must be group owner)
+   * @returns Promise with error if any
+   */
+  static async deleteGroup(groupId: string, userId: string): Promise<{ error: any }> {
+    try {
+      console.log('🗑️ DatabaseService: Deleting group:', groupId, 'by user:', userId)
+      
+      // First verify the user is the group owner
+      const { data: group, error: fetchError } = await supabase
+        .from('groups')
+        .select('created_by')
+        .eq('id', groupId)
+        .single()
+
+      if (fetchError) {
+        console.error('❌ DatabaseService: Error fetching group for deletion:', fetchError.message)
+        return { error: fetchError }
+      }
+
+      if (!group || group.created_by !== userId) {
+        const permissionError = new Error('Only group owners can delete groups')
+        console.error('❌ DatabaseService: Permission denied for group deletion')
+        return { error: permissionError }
+      }
+
+      // Delete the group (this will cascade delete members and pins due to foreign key constraints)
+      const { error } = await supabase
+        .from('groups')
+        .delete()
+        .eq('id', groupId)
+        .eq('created_by', userId) // Extra security check
+
+      if (error) {
+        console.error('❌ DatabaseService: Error deleting group:', error.message)
+        return { error }
+      }
+
+      console.log('✅ DatabaseService: Group deleted successfully')
+      return { error: null }
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception deleting group:', error)
+      return { error }
+    }
+  }
+
   // ===== GROUP PINS OPERATIONS =====
 
   /**
@@ -1076,6 +1125,56 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Update a group member's pin color
+   * @param groupId - The ID of the group
+   * @param userId - The ID of the user whose color to update
+   * @param pinColor - The new hex color code (format: #RRGGBB)
+   * @returns Promise with updated group member or error
+   */
+  static async updateMemberPinColor(
+    groupId: string, 
+    userId: string, 
+    pinColor: string
+  ): Promise<{ data: GroupMember | null; error: any }> {
+    try {
+      console.log(`🎨 DatabaseService: Updating pin color for user ${userId} in group ${groupId} to ${pinColor}`)
+      
+      // Validate color format
+      if (!/^#[0-9A-Fa-f]{6}$/.test(pinColor)) {
+        const formatError = new Error('Invalid color format. Must be hex format: #RRGGBB')
+        console.error('❌ DatabaseService: Invalid color format:', pinColor)
+        return { data: null, error: formatError }
+      }
+
+      // Update the member's pin color
+      const { data, error } = await supabase
+        .from('group_members')
+        .update({ pin_color: pinColor })
+        .eq('group_id', groupId)
+        .eq('user_id', userId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('❌ DatabaseService: Error updating member pin color:', error.message)
+        return { data: null, error }
+      }
+
+      if (!data) {
+        const notFoundError = new Error('Group membership not found')
+        console.error('❌ DatabaseService: Group membership not found')
+        return { data: null, error: notFoundError }
+      }
+
+      console.log('✅ DatabaseService: Member pin color updated successfully')
+      return { data, error: null }
+    } catch (error) {
+      console.error('❌ DatabaseService: Exception updating member pin color:', error)
+      return { data: null, error }
+    }
+  }
+
   // ===== PIN OPERATIONS =====
   
   /**
@@ -1181,25 +1280,71 @@ export class DatabaseService {
   }
 
   /**
-   * Delete a pin
+   * Delete a pin and all its associated group pins
    * @param pinId - The ID of the pin to delete
    * @returns Promise with error if any
    */
   static async deletePin(pinId: string): Promise<{ error: any }> {
     try {
-      console.log('🗑️ DatabaseService: Deleting pin:', pinId)
+      console.log('🗑️ DatabaseService: Deleting pin and all group associations:', pinId)
       
-      const { error } = await supabase
+      // First, verify the pin exists and get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        const authError = new Error('No authenticated user')
+        console.error('❌ DatabaseService: No authenticated user for deletion')
+        return { error: authError }
+      }
+
+      // Verify pin exists and user has permission to delete it
+      const { data: pinData, error: fetchError } = await supabase
+        .from('pins')
+        .select('id, user_id')
+        .eq('id', pinId)
+        .single()
+
+      if (fetchError || !pinData) {
+        console.error('❌ DatabaseService: Pin not found or error fetching:', fetchError?.message)
+        return { error: fetchError || new Error('Pin not found') }
+      }
+
+      if (pinData.user_id !== user.id) {
+        const permissionError = new Error('You can only delete your own pins')
+        console.error('❌ DatabaseService: User does not own this pin')
+        return { error: permissionError }
+      }
+
+      // Delete all group_pins entries for this pin first
+      const { error: groupPinsError } = await supabase
+        .from('group_pins')
+        .delete()
+        .eq('pin_id', pinId)
+
+      if (groupPinsError) {
+        console.error('❌ DatabaseService: Error deleting group pins:', groupPinsError.message)
+        return { error: groupPinsError }
+      }
+
+      console.log('✅ DatabaseService: All group pin associations deleted')
+
+      // Add a small delay to ensure group_pins deletion is processed
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Then delete the pin itself
+      const { error: pinError } = await supabase
         .from('pins')
         .delete()
         .eq('id', pinId)
 
-      if (error) {
-        console.error('❌ DatabaseService: Error deleting pin:', error.message)
-        return { error }
+      if (pinError) {
+        console.error('❌ DatabaseService: Error deleting pin:', pinError.message)
+        return { error: pinError }
       }
 
-      console.log('✅ DatabaseService: Pin deleted successfully')
+      // Add another small delay to ensure pin deletion is processed
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      console.log('✅ DatabaseService: Pin deleted successfully from all locations')
       return { error: null }
     } catch (error) {
       console.error('❌ DatabaseService: Exception deleting pin:', error)

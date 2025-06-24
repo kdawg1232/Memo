@@ -352,7 +352,7 @@ const AudioPlaybackModal: React.FC<AudioPlaybackModalProps> = ({
             <View style={styles.headerButtons}>
               {onDelete && (
                 <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
-                  <Text style={styles.deleteButtonText}>🗑️</Text>
+                  <Text style={styles.deleteButtonText}>Delete</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
@@ -423,9 +423,9 @@ const AudioPlaybackModal: React.FC<AudioPlaybackModalProps> = ({
                 {playbackState === 'loading' ? (
                   <Text style={styles.playButtonText}>...</Text>
                 ) : playbackState === 'playing' ? (
-                  <Text style={styles.playButtonText}>⏸️</Text>
+                  <Text style={styles.playButtonText}>Pause</Text>
                 ) : (
-                  <Text style={styles.playButtonText}>▶️</Text>
+                  <Text style={styles.playButtonText}>Play</Text>
                 )}
               </TouchableOpacity>
             </Animated.View>

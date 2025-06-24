@@ -467,7 +467,7 @@ const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
               style={[styles.actionButton, styles.playButton]}
               onPress={playRecording}
             >
-              <Text style={styles.playButtonText}>▶</Text>
+              <Text style={styles.playButtonText}>Play</Text>
             </TouchableOpacity>
           )}
           
@@ -476,7 +476,7 @@ const VoiceRecordingModal: React.FC<VoiceRecordingModalProps> = ({
               style={[styles.actionButton, styles.pauseButton]}
               onPress={pausePlayback}
             >
-              <Text style={styles.pauseButtonText}>⏸</Text>
+              <Text style={styles.pauseButtonText}>Pause</Text>
             </TouchableOpacity>
           )}
         </View>
