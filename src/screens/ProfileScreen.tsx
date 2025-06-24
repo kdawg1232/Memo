@@ -954,7 +954,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F5F5F5',
   },
   headerLeft: {
-    width: 40, // Balance the settings button on the right
+    width: 65, // Balance the settings button on the right
   },
   headerTitle: {
     fontSize: 18,
@@ -964,13 +964,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   settingsButton: {
-    width: 40,
+    width: 65,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
   settingsButtonText: {
-    fontSize: 20,
+    fontSize: 16,
     color: '#000000',
   },
   scrollView: {

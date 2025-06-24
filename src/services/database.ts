@@ -1062,7 +1062,7 @@ export class DatabaseService {
       // Combine the data manually
       const groupPinsWithDetails = groupPinsData.map(groupPin => ({
         ...groupPin,
-        user: userMap.get(groupPin.added_by_user_id) || {
+        added_by_user: userMap.get(groupPin.added_by_user_id) || {
           id: groupPin.added_by_user_id,
           first_name: 'Unknown',
           last_name: 'User',

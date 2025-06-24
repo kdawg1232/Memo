@@ -249,21 +249,7 @@ const FriendsScreen: React.FC<FriendsScreenProps> = ({ onNavigateBack, onNavigat
     onNavigateToGroup(group.id)
   }
 
-  /**
-   * Format creation date
-   */
-  const formatDate = (dateString: string): string => {
-    try {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    } catch (error) {
-      return 'Unknown date'
-    }
-  }
+
 
   /**
    * Render group card item
@@ -286,8 +272,6 @@ const FriendsScreen: React.FC<FriendsScreenProps> = ({ onNavigateBack, onNavigat
           {item.description}
         </Text>
       )}
-      
-      <Text style={styles.groupDate}>Created {formatDate(item.created_at)}</Text>
     </TouchableOpacity>
   )
 
@@ -518,7 +502,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000000',
-    marginBottom: 16,
   },
   groupCard: {
     backgroundColor: '#FFFFFF',
@@ -557,10 +540,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 8,
   },
-  groupDate: {
-    fontSize: 12,
-    color: '#808080',
-  },
+
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
@@ -586,6 +566,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    paddingTop: 20,
   },
   invitesButton: {
     backgroundColor: '#000000',
